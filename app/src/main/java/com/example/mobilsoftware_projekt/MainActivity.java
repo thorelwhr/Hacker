@@ -29,27 +29,21 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import java.util.ArrayList;
 
 
-public class MainActivity extends AppCompatActivity implements OnMapReadyCallback
-{
+public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
     GoogleMap map;
     private int FINE_PERMISSION_CODE = 1;
 
 
     @Override
-    protected void onCreate(Bundle savedInstanceState)
-    {
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        if ((ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED))
-        {
-            Toast.makeText(MainActivity.this, "Erlaubnis bereits erteilt!",Toast.LENGTH_SHORT).show();
-        }
-
-        else
-        {
+        if ((ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)) {
+            Toast.makeText(MainActivity.this, "Erlaubnis bereits erteilt!", Toast.LENGTH_SHORT).show();
+        } else {
             requestFinePermission();
-         }
+        }
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
@@ -57,12 +51,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     @Override
-    public void onMapReady(@NonNull GoogleMap googleMap)
-    {
+    public void onMapReady(@NonNull GoogleMap googleMap) {
         map = googleMap;
         LatLng x = new LatLng(49.012340, 8.385205);
         map.addMarker(new MarkerOptions().position(x).title("x"));
         map.moveCamera(CameraUpdateFactory.newLatLng(x));
+
+        if ((ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED))
+        {
+            map.setMyLocationEnabled(true);
+        }
+
     }
 
     private void requestFinePermission()
