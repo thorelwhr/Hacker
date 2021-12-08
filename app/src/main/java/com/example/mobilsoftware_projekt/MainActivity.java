@@ -7,11 +7,17 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
+import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
@@ -30,6 +36,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private FloatingActionButton mTracking;
     private FloatingActionButton mVerkehrsmittel;
 
+    //shared preferences
+    private String lastMapStyle;
+    private String restoredMapStyle;
+    private boolean trafficEnabled = false;
+    private boolean indoorEnabled = false;
+    private boolean buildingEnabled = false;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,6 +54,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         } else {
             requestFinePermission();
         }*/
+        //retrieve settings
+        SharedPreferences settings;
+        settings = getSharedPreferences("SAVE_MAP_SETTINGS", Context.MODE_PRIVATE);
+        restoredMapStyle = settings.getString("STYLE_OF_MAP", "MAP_TYPE_NORMAL)");
+        trafficEnabled = settings.getBoolean("TRAFFIC_SHOWING_ON_MAP", false);
+        buildingEnabled = settings.getBoolean("BUILDINGS_SHOWING_ON_MAP", false);
+        indoorEnabled =settings.getBoolean("INDOOR_SHOWING_ON_MAP", false);
+        lastMapStyle = restoredMapStyle;
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
@@ -67,6 +88,28 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onMapReady(GoogleMap googleMap) {
         map = googleMap;
+        if(restoredMapStyle == null) {
+            map.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+        } else if (restoredMapStyle.equals("MAP_TYPE_NORMAL")) {
+            map.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+        } else if (restoredMapStyle.equals("MAP_TYPE_HYBRID")) {
+            map.setMapType(GoogleMap.MAP_TYPE_HYBRID);
+        } else if (restoredMapStyle.equals("MAP_TYPE_SATELLITE")) {
+            map.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
+        } else if (restoredMapStyle.equals("MAP_TYPE_TERRAIN")) {
+            map.setMapType(GoogleMap.MAP_TYPE_TERRAIN);
+        } else {
+            Log.i("LDA", "Error setting layer with name " + restoredMapStyle);
+        }
+        if (trafficEnabled == true){
+            map.setTrafficEnabled(true);
+        }
+        if (buildingEnabled == true){
+            map.setBuildingsEnabled(true);
+        }
+        if (indoorEnabled == true){
+            map.setBuildingsEnabled(true);
+        }
 
         /*if ((ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED))
         {
@@ -141,7 +184,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 Manifest.permission.ACCESS_FINE_LOCATION)) {
             enableMyLocation();
         } else {
-            // Permission was denied. Display an error message
             permissionDenied = true;
         }
     }
@@ -151,7 +193,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onResumeFragments() {
         super.onResumeFragments();
         if (permissionDenied) {
-            // Permission was not granted, display error dialog.
             showMissingPermissionError();
             permissionDenied = false;
         }
@@ -161,5 +202,147 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void showMissingPermissionError() {
         PermissionUtils.PermissionDeniedDialog
                 .newInstance(true).show(getSupportFragmentManager(), "dialog");
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        SharedPreferences settings;
+        settings = getApplicationContext().getSharedPreferences("SAVE_MAP_SETTINGS", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = settings.edit();
+        editor.putString("STYLE_OF_MAP", lastMapStyle);
+        editor.putBoolean("TRAFFIC_SHOWING_ON_MAP", trafficEnabled);
+        editor.putBoolean("BUILDINGS_SHOWING_ON_MAP", buildingEnabled);
+        editor.putBoolean("INDOOR_SHOWING_ON_MAP", indoorEnabled);
+        editor.apply();
+    }
+
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+    }
+
+    @Override
+    public void onLowMemory() {
+        super.onLowMemory();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        SharedPreferences settings;
+        settings = getApplicationContext().getSharedPreferences("SAVE_MAP_SETTINGS", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = settings.edit();
+        editor.putString("STYLE_OF_MAP", lastMapStyle);
+        editor.putBoolean("TRAFFIC_SHOWING_ON_MAP", trafficEnabled);
+        editor.putBoolean("BUILDINGS_SHOWING_ON_MAP", buildingEnabled);
+        editor.putBoolean("INDOOR_SHOWING_ON_MAP", indoorEnabled);
+        editor.apply();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.map_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        if (trafficEnabled == true){
+            MenuItem item = menu.findItem(R.id.traffic_switch);
+            item.setIcon(R.drawable.ic_checked_mark);
+        }
+        if (buildingEnabled == true){
+            MenuItem item = menu.findItem(R.id.building_switch);
+            item.setIcon(R.drawable.ic_checked_mark);
+        }
+        if (indoorEnabled == true){
+            MenuItem item = menu.findItem(R.id.indoor_switch);
+            item.setIcon(R.drawable.ic_checked_mark);
+        }
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        switch (item.getItemId()){
+                case R.id.normal_map:
+                    map.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+                    lastMapStyle = "MAP_TYPE_NORMAL";
+                    return true;
+                case R.id.hybrid_map:
+                    map.setMapType(GoogleMap.MAP_TYPE_HYBRID);
+                    lastMapStyle = "MAP_TYPE_HYBRID";
+                    return true;
+                case R.id.satellite_map:
+                    map.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
+                    lastMapStyle = "MAP_TYPE_SATELLITE";
+                    return true;
+                case R.id.terrain_map:
+                    map.setMapType(GoogleMap.MAP_TYPE_TERRAIN);
+                    lastMapStyle = "MAP_TYPE_TERRAIN";
+                    return true;
+            case R.id.traffic_switch:
+                if(trafficEnabled){
+                    map.setTrafficEnabled(false);
+                    item.setIcon(R.drawable.ic_unchecked_mark);
+                    trafficEnabled = false;
+                    return true;
+                }
+                else{
+                    map.setTrafficEnabled(true);
+                    item.setIcon(R.drawable.ic_checked_mark);
+                    trafficEnabled = true;
+                    return true;
+                }
+            case R.id.building_switch:
+                if(buildingEnabled){
+                    map.setBuildingsEnabled(false);
+                    item.setIcon(R.drawable.ic_unchecked_mark);
+                    buildingEnabled = false;
+                    return true;
+                }
+                else{
+                    map.setBuildingsEnabled(true);
+                    item.setIcon(R.drawable.ic_checked_mark);
+                    buildingEnabled = true;
+                    return true;
+                }
+            case R.id.indoor_switch:
+                if(indoorEnabled){
+                    map.setIndoorEnabled(false);
+                    item.setIcon(R.drawable.ic_unchecked_mark);
+                    indoorEnabled = false;
+                    return true;
+                }
+                else{
+                    map.setIndoorEnabled(true);
+                    item.setIcon(R.drawable.ic_checked_mark);
+                    indoorEnabled = true;
+                    return true;
+                }
+            case android.R.id.home:
+                finish();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 }
