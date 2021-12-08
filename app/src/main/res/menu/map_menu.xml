@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/map_styles"
+        android:title="@string/menu_mapStyles"
+        app:showAsAction="never">
+        <menu>
+
+            <item android:id="@+id/normal_map"
+                android:title="@string/street_mapmenu"
+                app:showAsAction="never"/>
+            <item android:id="@+id/hybrid_map"
+                android:title="@string/hybrid_mapmenu"
+                app:showAsAction="never"/>
+            <item android:id="@+id/satellite_map"
+                android:title="@string/satellite_mapmenu"
+                app:showAsAction="never"/>
+            <item android:id="@+id/terrain_map"
+                android:title="@string/terrain_mapmenu"
+                app:showAsAction="never"/>
+        </menu>
+    </item>
+
+    <item
+        android:id="@+id/menu_layerOptions"
+        android:title="Anzeigeoptionen"
+        app:showAsAction="never">
+        <menu>
+
+            <item
+                android:id="@+id/traffic_switch"
+                android:title="Verkehrsbelastung anzeigen"
+                android:icon="@drawable/ic_unchecked_mark"
+                app:showAsAction="never"/>
+            <item
+                android:id="@+id/building_switch"
+                android:title="Gebäude anzeigen"
+                android:icon="@drawable/ic_unchecked_mark"
+                app:showAsAction="never" />
+            <item
+                android:id="@+id/indoor_switch"
+                android:title="Innenraumkarte anzeigen"
+                android:icon="@drawable/ic_unchecked_mark"
+                app:showAsAction="never" />
+        </menu>
+    </item>
+
+
+</menu>
