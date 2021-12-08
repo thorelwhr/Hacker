@@ -14,6 +14,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Mobilsoftware_Projekt">
         <activity
+            android:name=".TrackingActivity"
+            android:exported="false" />
+        <activity
             android:name=".VerkehrsmittelActivity"
             android:exported="false" />
 

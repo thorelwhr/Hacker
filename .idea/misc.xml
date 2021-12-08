@@ -3,6 +3,10 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/Users/Nhat/Hacker/app/src/main/res/drawable/ic_fahrrad.xml" value="0.19947916666666668" />
+        <entry key="..\:/Users/Nhat/Hacker/app/src/main/res/drawable/ic_fussgaenger.xml" value="0.19947916666666668" />
+        <entry key="..\:/Users/Nhat/Hacker/app/src/main/res/layout/activity_main.xml" value="0.14221014492753623" />
+        <entry key="..\:/Users/Nhat/Hacker/app/src/main/res/layout/activity_verkehrsmittel.xml" value="0.18333333333333332" />
         <entry key="..\:/Users/soere/AndroidStudioProjects/Hacker/app/src/main/res/drawable/ic_fussgaenger.xml" value="0.26614583333333336" />
         <entry key="..\:/Users/soere/AndroidStudioProjects/Hacker/app/src/main/res/drawable/ic_launcher_background.xml" value="0.26614583333333336" />
         <entry key="..\:/Users/soere/AndroidStudioProjects/Hacker/app/src/main/res/layout/activity_main.xml" value="0.1234375" />

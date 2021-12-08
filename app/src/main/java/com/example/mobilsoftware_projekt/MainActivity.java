@@ -32,67 +32,72 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.util.ArrayList;
 
 
-public class MainActivity extends AppCompatActivity implements OnMapReadyCallback,GoogleMap.OnMyLocationButtonClickListener, GoogleMap.OnMyLocationClickListener {
+public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleMap.OnMyLocationButtonClickListener, GoogleMap.OnMyLocationClickListener
+{
     GoogleMap map;
     private int FINE_PERMISSION_CODE = 1;
 
-
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState)
+    {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        if ((ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)) {
+        if ((ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED))
+        {
             Toast.makeText(MainActivity.this, "Erlaubnis bereits erteilt!", Toast.LENGTH_SHORT).show();
-        } else {
+        }
+        else
+            {
             requestFinePermission();
         }
+
+        FloatingActionButton mTracking = (FloatingActionButton) findViewById(R.id.fab_tracking);
+        FloatingActionButton mVerkehrsmittel = (FloatingActionButton) findViewById(R.id.fab_verkehrsmittel);
+
+        mVerkehrsmittel.setOnClickListener(new View.OnClickListener()
+        {
+
+            @Override
+            public void onClick(View v)
+            {
+                Intent verkehrsmittel = new Intent(MainActivity.this,VerkehrsmittelActivity.class);
+                startActivity(verkehrsmittel);
+            }
+        });
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-        FloatingActionButton mTracking = (FloatingActionButton) findViewById(R.id.fab_tracking);
-        FloatingActionButton mVerkehrsmittel = (FloatingActionButton)  findViewById(R.id.fab_verkehrsmittel);
 
-        mTracking.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-
-            }
-        });
-
-        mVerkehrsmittel.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-
-            }
-        });
     }
 
+
     @Override
-    public void onMapReady(@NonNull GoogleMap googleMap) {
+    public void onMapReady(@NonNull GoogleMap googleMap)
+    {
         map = googleMap;
+        map.setOnMyLocationButtonClickListener(this);
+        map.setOnMyLocationClickListener(this);
 
         if ((ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED))
         {
             map.setMyLocationEnabled(true);
         }
-        map.setOnMyLocationButtonClickListener(this);
-        map.setOnMyLocationClickListener(this);
+
     }
 
-    private void requestFinePermission()
-    {
-        if (ActivityCompat.shouldShowRequestPermissionRationale(this,Manifest.permission.ACCESS_FINE_LOCATION))
+    private void requestFinePermission() {
+        if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_FINE_LOCATION))
         {
             new AlertDialog.Builder(this)
                     .setTitle("Hinweis")
-                    .setMessage("Karte benötigt Zugriff auf Coarse")
-                    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    .setMessage("Karte benötigt Zugriff auf Fine")
+                    .setPositiveButton("OK", new DialogInterface.OnClickListener()
+                    {
                         @Override
-                        public void onClick(DialogInterface dialog, int which)
-                        {
-                            ActivityCompat.requestPermissions(MainActivity.this,new String[] {Manifest.permission.ACCESS_FINE_LOCATION}, FINE_PERMISSION_CODE);
+                        public void onClick(DialogInterface dialog, int which) {
+                            ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, FINE_PERMISSION_CODE);
                         }
                     })
                     .setNegativeButton("Abbruch", new DialogInterface.OnClickListener() {
@@ -102,11 +107,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         }
                     })
                     .create().show();
-        }
-
-        else
-        {
-            ActivityCompat.requestPermissions(this,new String[] {Manifest.permission.ACCESS_FINE_LOCATION}, FINE_PERMISSION_CODE);
+        } else {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, FINE_PERMISSION_CODE);
         }
     }
 
@@ -127,15 +129,18 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         }
     }
+
     @Override
-    public boolean onMyLocationButtonClick() {
+    public boolean onMyLocationButtonClick()
+    {
         Toast.makeText(this, "MyLocation button clicked", Toast.LENGTH_SHORT)
                 .show();
         return false;
     }
 
     @Override
-    public void onMyLocationClick(@NonNull Location location) {
+    public void onMyLocationClick(@NonNull Location location)
+    {
         Toast.makeText(this, "Current location:\n" + location, Toast.LENGTH_LONG)
                 .show();
     }
