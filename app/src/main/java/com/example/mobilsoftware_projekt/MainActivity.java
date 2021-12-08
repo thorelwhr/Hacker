@@ -12,7 +12,9 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.drawable.Drawable;
 import android.location.Location;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -30,6 +32,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback,GoogleMap.OnMyLocationButtonClickListener, GoogleMap.OnMyLocationClickListener, ActivityCompat.OnRequestPermissionsResultCallback {
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
+    public static final int TEXT_REQUEST = 1;
     private boolean permissionDenied = false;
 
     private GoogleMap map;
@@ -69,6 +72,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mTracking = (FloatingActionButton) findViewById(R.id.fab_tracking);
         mVerkehrsmittel = (FloatingActionButton)  findViewById(R.id.fab_verkehrsmittel);
 
+        /*Intent intent = getIntent();
+        String verkehrsmittel = intent.getStringExtra(VerkehrsmittelActivity.EXTRA_VM);
+        if (verkehrsmittel == null){
+            //do nothing
+        }
+        else {
+            Toast.makeText(this, verkehrsmittel, Toast.LENGTH_SHORT).show();
+        }*/
+
         mTracking.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -80,7 +92,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(MainActivity.this, VerkehrsmittelActivity.class);
-                startActivity(intent);
+                startActivityForResult(intent, TEXT_REQUEST);
             }
         });
     }
@@ -202,6 +214,37 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void showMissingPermissionError() {
         PermissionUtils.PermissionDeniedDialog
                 .newInstance(true).show(getSupportFragmentManager(), "dialog");
+    }
+
+    @Override
+    public void  onActivityResult(int requestCode, int resultCode, Intent data){
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == TEXT_REQUEST){
+            if (resultCode == RESULT_OK){
+                String verkehrsmittel = data.getStringExtra(VerkehrsmittelActivity.EXTRA_VM);
+                Toast.makeText(this, verkehrsmittel, Toast.LENGTH_SHORT).show();
+                mVerkehrsmittel = findViewById(R.id.fab_verkehrsmittel);
+
+                if (verkehrsmittel.equals(getString(R.string.vmFuß))) {
+                    mVerkehrsmittel.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_fussgaenger));
+                }
+                if (verkehrsmittel.equals(getString(R.string.vmFahrrad))) {
+                    mVerkehrsmittel.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_fahrrad));
+                }
+                if (verkehrsmittel.equals(getString(R.string.vmMIVFahrer))) {
+                    mVerkehrsmittel.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_auto));
+                }
+                if (verkehrsmittel.equals(getString(R.string.vmMIVMitfahrer))) {
+                    mVerkehrsmittel.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_mitfahrer));
+                }
+                if (verkehrsmittel.equals(getString(R.string.vmOPNV))) {
+                    mVerkehrsmittel.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_opnv));
+                }
+                if (verkehrsmittel.equals(getString(R.string.vmSonstiges))) {
+                    mVerkehrsmittel.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_sonstiges));
+                }
+            }
+        }
     }
 
     @Override
