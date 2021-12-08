@@ -3,7 +3,9 @@ package com.example.mobilsoftware_projekt;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -16,13 +18,16 @@ import java.util.List;
 
 public class VerkehrsmittelActivity extends AppCompatActivity {
 
+    public static  final String EXTRA_VM = "com.example.mobilsoftware_projekt.extra.VM";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_verkehrsmittel);
 
         final ListView vm_listView = (ListView) findViewById(R.id.vm_listView);
-        String[] values = new String[] {"Fuß", "Fahrrad", "ÖPNV", "MIV-Fahrer", "MIV-Mitfahrer", "Sonstiges"};
+        String[] values = new String[] {getString(R.string.vmFuß), getString(R.string.vmFahrrad), getString(R.string.vmOPNV),
+                getString(R.string.vmMIVFahrer), getString(R.string.vmMIVMitfahrer), getString(R.string.vmSonstiges)};
 
         final ArrayList<String> vmList = new ArrayList<String>();
         for (int i = 0; i < values.length; ++i) {
@@ -41,8 +46,13 @@ public class VerkehrsmittelActivity extends AppCompatActivity {
                         .withEndAction(new Runnable() {
                             @Override
                             public void run() {
-                                Toast.makeText(VerkehrsmittelActivity.this, vmList.get(position), Toast.LENGTH_SHORT).show();;
-
+                                Toast.makeText(VerkehrsmittelActivity.this, vmList.get(position) + " ausgewählt!", Toast.LENGTH_SHORT).show();;
+                                String mChosenVm =vmList.get(position);
+                                Intent mChosenVmIntent = new Intent();
+                                mChosenVmIntent.putExtra(EXTRA_VM, mChosenVm);
+                                setResult(RESULT_OK, mChosenVmIntent);
+                                //Log.d(LOG_TAG, "End SecondActivity");
+                                finish();
                             }
                         });
             }
