@@ -34,6 +34,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
     public static final int TEXT_REQUEST = 1; // Für Verkehrsmittelauswahl, Funktion wie bei Permission
     private boolean permissionDenied = false;
+    private boolean isTracking = false;
 
     private GoogleMap map;
     private FloatingActionButton mTracking;
@@ -76,8 +77,23 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         mTracking.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v) {
-
+            public void onClick(View v)
+            {
+                if (!isTracking)
+                {
+                    isTracking = true;
+                    Toast.makeText(MainActivity.this, "Start tracking", Toast.LENGTH_SHORT).show();
+                    mTracking.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(),R.drawable.ic_stop));
+                    mVerkehrsmittel.setClickable(false);
+                    // Daten an Polyline-Funktion übergeben
+                }
+                else
+                {
+                    isTracking = false;
+                    Toast.makeText(MainActivity.this, "Stop tracking", Toast.LENGTH_SHORT).show();
+                    mTracking.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(),R.drawable.ic_start));
+                    mVerkehrsmittel.setClickable(true);
+                }
             }
         });
 
