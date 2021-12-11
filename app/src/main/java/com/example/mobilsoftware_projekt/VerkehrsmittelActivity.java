@@ -16,7 +16,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-public class VerkehrsmittelActivity extends AppCompatActivity {
+public class VerkehrsmittelActivity extends AppCompatActivity
+{
 
     public static  final String EXTRA_VM = "com.example.mobilsoftware_projekt.extra.VM";
 
@@ -40,12 +41,15 @@ public class VerkehrsmittelActivity extends AppCompatActivity {
 
             @Override
             public void onItemClick(AdapterView<?> parent, final View view,
-                                    int position, long id) {
+                                    int position, long id)
+            {
                 final String item = (String) parent.getItemAtPosition(position);
-                view.animate().setDuration(2000).alpha(0)
-                        .withEndAction(new Runnable() {
+                view.animate().setDuration(100).alpha(0)
+                        .withEndAction(new Runnable()
+                        {
                             @Override
-                            public void run() {
+                            public void run()
+                            {
                                 Toast.makeText(VerkehrsmittelActivity.this, vmList.get(position) + " ausgewählt!", Toast.LENGTH_SHORT).show();;
                                 String mChosenVm =vmList.get(position);
                                 Intent mChosenVmIntent = new Intent();
