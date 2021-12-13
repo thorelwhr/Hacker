@@ -25,6 +25,7 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -38,9 +39,12 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -51,6 +55,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public static final int TEXT_REQUEST = 1; // Für Verkehrsmittelauswahl, Funktion wie bei Permission
     private static final int DEFAULT_UPDATE_INTERVALL = 10; //best practice; not necessary
     private static final int FASTEST_UPDATE_INTERVALL = 1;
+    private static final float MAP_STANDARD_ZOOM = 10f;
     private boolean permissionDenied = false;
     private boolean isTracking = false;
 
@@ -77,6 +82,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Location mLastLocation;
 
     private Address mCurrentAddress;
+
+    private ArrayList<Location> mTrackedPath;
+    private ArrayList<LatLng> mPolylinePoints;
+    int k = 0;
 
 
     @Override
@@ -129,16 +138,32 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mTracking.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+
+                mGeocodeLocations(mCurrentLocation);
+
                 if (!isTracking) {
                     isTracking = true;
-                    Toast.makeText(MainActivity.this, "Start tracking at: " +mCurrentAddress.getAddressLine(0), Toast.LENGTH_SHORT).show();
+                    if(mCurrentAddress != null) {
+                        Toast.makeText(MainActivity.this, "Start tracking at: " + mCurrentAddress.getAddressLine(0), Toast.LENGTH_SHORT).show();
+                    }
+                    else{
+                        Toast.makeText(MainActivity.this, "Start tracking", Toast.LENGTH_SHORT).show();
+                    }
                     mTracking.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_stop));
                     mTracking.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(getApplicationContext(), R.color.red)));
                     mVerkehrsmittel.setClickable(false);
                     // Daten an Polyline-Funktion übergeben
+                    mPolylinePoints = new ArrayList<LatLng>();
+                    drawPolyline();
+
                 } else {
                     isTracking = false;
-                    Toast.makeText(MainActivity.this, "Stop tracking at: " +mCurrentAddress.getAddressLine(0), Toast.LENGTH_SHORT).show();
+                    if(mCurrentAddress != null) {
+                        Toast.makeText(MainActivity.this, "Stop tracking at: " + mCurrentAddress.getAddressLine(0), Toast.LENGTH_SHORT).show();
+                    }
+                    else{
+                        Toast.makeText(MainActivity.this, "Stop tracking", Toast.LENGTH_SHORT).show();
+                    }
                     mTracking.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_start));
                     mTracking.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(getApplicationContext(), R.color.green)));
                     mVerkehrsmittel.setClickable(true);
@@ -158,6 +183,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
 
+    //-------------------- Karte ----------------------------------------
     @Override
     public void onMapReady(GoogleMap googleMap) {
         map = googleMap;
@@ -187,17 +213,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             map.setBuildingsEnabled(true);
         }*/
 
-        /*locationRequest = LocationRequest.create();
-        locationRequest.setInterval(1000 * DEFAULT_UPDATE_INTERVALL);
-        locationRequest.setFastestInterval(1000 * FASTEST_UPDATE_INTERVALL);
-        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);*/
-
         map.setOnMyLocationButtonClickListener(this);
         map.setOnMyLocationClickListener(this);
         enableMyLocation();
         startLocationUpdates();
     }
 
+    //-------------------Location------------------------------------------
     private void enableMyLocation() {
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(MainActivity.this);
         if ((ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)) {
@@ -243,20 +265,35 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         if(location != null){
             mCurrentLocation = location;
         }
-        map.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude()), 4));
-        Geocoder geocoder = new Geocoder(MainActivity.this);
-        try{
-            List<Address> addresses = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(),1);
-            mCurrentAddress = addresses.get(0);
+        map.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude()), MAP_STANDARD_ZOOM));
+        if(isTracking){
+            drawPolyline();
         }
-        catch (Exception e){
-            //do nothing really
-        }
+    }
+
+    private void mGeocodeLocations(Location location) {
+        //separated cause this slows the app down significantly
+        //use runOnUiThread bc it's a heavy task - no clue if it actually makes a difference
+        //call this as few times as possible, if no address is found app will slow down significantly
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Geocoder geocoder = new Geocoder(MainActivity.this);
+                try{
+                    List<Address> addresses = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(),1);
+                    mCurrentAddress = addresses.get(0);
+                }
+                catch (Exception e){
+                    //do nothing or bad stuff will happen; unless you know what you're doing - but I most certainly have no clue
+                }
+            }
+        });
+
     }
 
     @Override
     public boolean onMyLocationButtonClick() {
-        Toast.makeText(this, "MyLocation button clicked", Toast.LENGTH_SHORT).show();
+        //Toast.makeText(this, "MyLocation button clicked", Toast.LENGTH_SHORT).show();
         return false;
     }
 
@@ -296,7 +333,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }*/
 
-
+    // --------- Permissions------------------------------------------------------
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -332,6 +369,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .newInstance(true).show(getSupportFragmentManager(), "dialog");
     }
 
+
+    //------------------- Requests & Sonstiges-----------------------------------
     @Override
     public void  onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -367,6 +406,38 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
+    private void drawPolyline() {
+            double mCurrentLat = mCurrentLocation.getLatitude();
+            double mCurrentLong = mCurrentLocation.getLongitude();
+            LatLng currentLatLon = new LatLng(mCurrentLat, mCurrentLong);
+
+            //Populate ArrayLists - constantly
+            mTrackedPath = new ArrayList<Location>();
+            mTrackedPath.add(mCurrentLocation);
+            if(mPolylinePoints.isEmpty()) {
+                mPolylinePoints.add(currentLatLon);
+            }
+            else{
+                int j = mPolylinePoints.size() - 1;
+                if(mPolylinePoints.get(j) != currentLatLon){
+                    mPolylinePoints.add(currentLatLon);
+                }
+            }
+            //Polyline zeichnen:
+            for (int i = 0; i < mPolylinePoints.size(); i++) {
+                Polyline polyline = map.addPolyline(new PolylineOptions().
+                        clickable(false).
+                        add((mPolylinePoints.get(i))));
+            }
+            TextView counter = findViewById(R.id.textView);
+            counter.setText(Integer.toString(mPolylinePoints.size()));
+        //counter.setText(Integer.toString(k));
+            enableMyLocation();
+            k++;
+    }
+
+    //------------- Lifecycle --------------------------------------
+
     @Override
     protected void onStart() {
         super.onStart();
@@ -385,6 +456,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onStop() {
         super.onStop();
+        stopLocationUpdates();
         /*SharedPreferences settings;
         settings = getApplicationContext().getSharedPreferences("SAVE_MAP_SETTINGS", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = settings.edit();
@@ -419,6 +491,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         editor.putBoolean("INDOOR_SHOWING_ON_MAP", indoorEnabled);
         editor.apply();*/
     }
+
+    //--------------- Menu-settings -----------------------------------------
 
     /*@Override
     public boolean onCreateOptionsMenu(Menu menu)
