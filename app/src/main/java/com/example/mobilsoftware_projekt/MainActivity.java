@@ -23,9 +23,13 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 
@@ -33,6 +37,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
     public static final int TEXT_REQUEST = 1; // Für Verkehrsmittelauswahl, Funktion wie bei Permission
+    private static final int DEFAULT_UPDATE_INTERVALL = 10; //best practice; not necessary
+    private static final int FASTEST_UPDATE_INTERVALL = 5;
     private boolean permissionDenied = false;
     private boolean isTracking = false;
 
@@ -47,18 +53,26 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private boolean indoorEnabled = false;
     private boolean buildingEnabled = false;*/
 
+    //Google API for location services
+    FusedLocationProviderClient fusedLocationProviderClient;
+
+    //Location request config file for all settings related to FusedLocationProvider
+    LocationRequest locationRequest;
+
 
     @Override
-    protected void onCreate(Bundle savedInstanceState)
-    {
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+
 
         /*if ((ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)) {
             Toast.makeText(MainActivity.this, "Erlaubnis bereits erteilt!", Toast.LENGTH_SHORT).show();
         } else {
             requestFinePermission();
         }*/
+
         //retrieve settings
 
         /*SharedPreferences settings;
@@ -75,20 +89,26 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mTracking = (FloatingActionButton) findViewById(R.id.fab_tracking);
         mVerkehrsmittel = (FloatingActionButton)  findViewById(R.id.fab_verkehrsmittel);
 
+        //set all properties of LocationRequest
+        locationRequest = new LocationRequest();
+        locationRequest.setInterval(1000 * DEFAULT_UPDATE_INTERVALL);
+        locationRequest.setFastestInterval(1000 * FASTEST_UPDATE_INTERVALL);
+
+        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+
+
+
         mTracking.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v)
-            {
-                if (!isTracking)
-                {
+            public void onClick(View v) {
+                if (!isTracking) {
                     isTracking = true;
                     Toast.makeText(MainActivity.this, "Start tracking", Toast.LENGTH_SHORT).show();
                     mTracking.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(),R.drawable.ic_stop));
                     mVerkehrsmittel.setClickable(false);
                     // Daten an Polyline-Funktion übergeben
                 }
-                else
-                {
+                else {
                     isTracking = false;
                     Toast.makeText(MainActivity.this, "Stop tracking", Toast.LENGTH_SHORT).show();
                     mTracking.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(),R.drawable.ic_start));
@@ -109,7 +129,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onMapReady(GoogleMap googleMap) {
         map = googleMap;
-        // davor gespeicherte KArteneinstellungen werden hier wieder aufgerufen
+
+        // davor gespeicherte Karteneinstellungen werden hier wieder aufgerufen:
 
         /*if(restoredMapStyle == null) {
             map.setMapType(GoogleMap.MAP_TYPE_NORMAL);
@@ -134,41 +155,47 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             map.setBuildingsEnabled(true);
         }*/
 
-        /*if ((ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED))
-        {
-            map.setMyLocationEnabled(true);
-        }*/
         map.setOnMyLocationButtonClickListener(this);
         map.setOnMyLocationClickListener(this);
         enableMyLocation();
     }
 
-    private void enableMyLocation()
-    {
+    private void enableMyLocation() {
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(MainActivity.this);
         if ((ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)){
-            if (map != null) // Für Null-Pointer-Exception
-            {
+
+            // Für Null-Pointer-Exception:
+            if (map != null) {
+                fusedLocationProviderClient.getLastLocation().addOnSuccessListener(new OnSuccessListener<Location>() {
+                    @Override
+                    public void onSuccess(@NonNull Location location) {
+
+                        //Put Values of location into UI
+                        updateUIValues(location);
+                    }
+                });
                 map.setMyLocationEnabled(true);
             }
         }
-        else
-            {
+        else {
             PermissionUtils.requestPermission(this, LOCATION_PERMISSION_REQUEST_CODE,
                     Manifest.permission.ACCESS_FINE_LOCATION, true);
         }
     }
 
+    private void updateUIValues(Location location) {
+        //update with new location
+    }
+
     @Override
-    public boolean onMyLocationButtonClick()
-    {
+    public boolean onMyLocationButtonClick() {
         Toast.makeText(this, "MyLocation button clicked", Toast.LENGTH_SHORT)
                 .show();
         return false;
     }
 
     @Override
-    public void onMyLocationClick(@NonNull Location location)
-    {
+    public void onMyLocationClick(@NonNull Location location) {
         Toast.makeText(this, "Current location:\n" + location, Toast.LENGTH_LONG).show();
     }
 
@@ -203,57 +230,54 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults)
-    {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
-        if (requestCode != LOCATION_PERMISSION_REQUEST_CODE) // Zugriff bereits gewährt
-        {
+        // Zugriff bereits gewährt
+        if (requestCode != LOCATION_PERMISSION_REQUEST_CODE) {
             return;
         }
-        if (PermissionUtils.isPermissionGranted(permissions, grantResults, // Zugriff wird gewährt
-                Manifest.permission.ACCESS_FINE_LOCATION))
-        {
+
+        // Zugriff wird gewährt
+        if (PermissionUtils.isPermissionGranted(permissions, grantResults,
+                Manifest.permission.ACCESS_FINE_LOCATION)) {
             enableMyLocation();
-        } else
-            {
+        } else {
             permissionDenied = true;
         }
     }
 
 
     @Override
-    protected void onResumeFragments()
-    {
+    protected void onResumeFragments() {
         super.onResumeFragments();
-        if (permissionDenied) // Wenn Zugriff verweigert wir: Error Message
-        {
+        // Wenn Zugriff verweigert wird: Error Message
+        if (permissionDenied) {
             showMissingPermissionError();
             permissionDenied = false;
         }
     }
 
 
-    private void showMissingPermissionError()
-    {
+    private void showMissingPermissionError() {
         PermissionUtils.PermissionDeniedDialog
                 .newInstance(true).show(getSupportFragmentManager(), "dialog");
     }
 
     @Override
-    public void  onActivityResult(int requestCode, int resultCode, Intent data)
-    {
+    public void  onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == TEXT_REQUEST) // Wenn request angenommen wurde
-        {
-            if (resultCode == RESULT_OK) // Wenn ich ein Ergebnis hab
-            {
+
+        // Wenn request angenommen wurde:
+        if (requestCode == TEXT_REQUEST) {
+
+            // Wenn ich ein Ergebnis habe:
+            if (resultCode == RESULT_OK) {
                 String verkehrsmittel = data.getStringExtra(VerkehrsmittelActivity.EXTRA_VM);
                 Toast.makeText(this, verkehrsmittel, Toast.LENGTH_SHORT).show();
                 mVerkehrsmittel = findViewById(R.id.fab_verkehrsmittel);
 
-                if (verkehrsmittel.equals(getString(R.string.vmFuß)))
-                {
+                if (verkehrsmittel.equals(getString(R.string.vmFuß))) {
                     mVerkehrsmittel.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_fussgaenger));
                 }
                 if (verkehrsmittel.equals(getString(R.string.vmFahrrad))) {
@@ -336,20 +360,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }*/
 
     /*@Override
-    public boolean onPrepareOptionsMenu(Menu menu)
-    {
-        if (trafficEnabled == true)
-        {
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        if (trafficEnabled == true) {
             MenuItem item = menu.findItem(R.id.traffic_switch);
             item.setIcon(R.drawable.ic_checked_mark);
         }
-        if (buildingEnabled == true)
-        {
+        if (buildingEnabled == true) {
             MenuItem item = menu.findItem(R.id.building_switch);
             item.setIcon(R.drawable.ic_checked_mark);
         }
-        if (indoorEnabled == true)
-        {
+        if (indoorEnabled == true) {
             MenuItem item = menu.findItem(R.id.indoor_switch);
             item.setIcon(R.drawable.ic_checked_mark);
         }
@@ -357,8 +377,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }*/
 
     /*@Override
-    public boolean onOptionsItemSelected(@NonNull MenuItem item)
-    {
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         switch (item.getItemId()){
                 case R.id.normal_map:
                     map.setMapType(GoogleMap.MAP_TYPE_NORMAL);
@@ -377,45 +396,39 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     lastMapStyle = "MAP_TYPE_TERRAIN";
                     return true;
             case R.id.traffic_switch:
-                if(trafficEnabled)
-                {
+                if(trafficEnabled) {
                     map.setTrafficEnabled(false);
                     item.setIcon(R.drawable.ic_unchecked_mark);
                     trafficEnabled = false;
                     return true;
                 }
-                else
-                    {
+                else {
                     map.setTrafficEnabled(true);
                     item.setIcon(R.drawable.ic_checked_mark);
                     trafficEnabled = true;
                     return true;
                 }
             case R.id.building_switch:
-                if(buildingEnabled)
-                {
+                if(buildingEnabled) {
                     map.setBuildingsEnabled(false);
                     item.setIcon(R.drawable.ic_unchecked_mark);
                     buildingEnabled = false;
                     return true;
                 }
-                else
-                    {
+                else {
                     map.setBuildingsEnabled(true);
                     item.setIcon(R.drawable.ic_checked_mark);
                     buildingEnabled = true;
                     return true;
                 }
             case R.id.indoor_switch:
-                if(indoorEnabled)
-                {
+                if(indoorEnabled) {
                     map.setIndoorEnabled(false);
                     item.setIcon(R.drawable.ic_unchecked_mark);
                     indoorEnabled = false;
                     return true;
                 }
-                else
-                    {
+                else {
                     map.setIndoorEnabled(true);
                     item.setIcon(R.drawable.ic_checked_mark);
                     indoorEnabled = true;
