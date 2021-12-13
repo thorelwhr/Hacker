@@ -7,6 +7,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -14,6 +15,8 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.graphics.drawable.Drawable;
+import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
@@ -38,14 +41,16 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements OnMapReadyCallback,GoogleMap.OnMyLocationButtonClickListener,
+
+public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleMap.OnMyLocationButtonClickListener,
         GoogleMap.OnMyLocationClickListener, ActivityCompat.OnRequestPermissionsResultCallback {
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
     public static final int TEXT_REQUEST = 1; // Für Verkehrsmittelauswahl, Funktion wie bei Permission
     private static final int DEFAULT_UPDATE_INTERVALL = 10; //best practice; not necessary
-    private static final int FASTEST_UPDATE_INTERVALL = 5;
+    private static final int FASTEST_UPDATE_INTERVALL = 1;
     private boolean permissionDenied = false;
     private boolean isTracking = false;
 
@@ -70,6 +75,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private Location mCurrentLocation;
     private Location mLastLocation;
+
+    private Address mCurrentAddress;
 
 
     @Override
@@ -100,10 +107,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
-
         mTracking = (FloatingActionButton) findViewById(R.id.fab_tracking);
-        mVerkehrsmittel = (FloatingActionButton)  findViewById(R.id.fab_verkehrsmittel);
+        mVerkehrsmittel = (FloatingActionButton) findViewById(R.id.fab_verkehrsmittel);
 
         //set all properties of LocationRequest
         locationRequest = LocationRequest.create();
@@ -111,11 +116,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         locationRequest.setFastestInterval(1000 * FASTEST_UPDATE_INTERVALL);
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
-        //For continuous location Updates:
+        //For continuous location Updates, is triggered whenever the update interval is met:
         locationCallback = new LocationCallback() {
             @Override
             public void onLocationResult(@NonNull LocationResult locationResult) {
                 super.onLocationResult(locationResult);
+                //save location
                 updateLocationValues(locationResult.getLastLocation());
             }
         };
@@ -125,16 +131,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             public void onClick(View v) {
                 if (!isTracking) {
                     isTracking = true;
-                    Toast.makeText(MainActivity.this, "Start tracking", Toast.LENGTH_SHORT).show();
-                    mTracking.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(),R.drawable.ic_stop));
+                    Toast.makeText(MainActivity.this, "Start tracking at: " +mCurrentAddress.getAddressLine(0), Toast.LENGTH_SHORT).show();
+                    mTracking.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_stop));
                     mTracking.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(getApplicationContext(), R.color.red)));
                     mVerkehrsmittel.setClickable(false);
                     // Daten an Polyline-Funktion übergeben
-                }
-                else {
+                } else {
                     isTracking = false;
-                    Toast.makeText(MainActivity.this, "Stop tracking", Toast.LENGTH_SHORT).show();
-                    mTracking.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(),R.drawable.ic_start));
+                    Toast.makeText(MainActivity.this, "Stop tracking at: " +mCurrentAddress.getAddressLine(0), Toast.LENGTH_SHORT).show();
+                    mTracking.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_start));
                     mTracking.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(getApplicationContext(), R.color.green)));
                     mVerkehrsmittel.setClickable(true);
                     //Polyline -Funktion beenden
@@ -149,6 +154,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 startActivityForResult(intent, TEXT_REQUEST);
             }
         });
+
+
     }
 
     @Override
@@ -180,14 +187,20 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             map.setBuildingsEnabled(true);
         }*/
 
+        /*locationRequest = LocationRequest.create();
+        locationRequest.setInterval(1000 * DEFAULT_UPDATE_INTERVALL);
+        locationRequest.setFastestInterval(1000 * FASTEST_UPDATE_INTERVALL);
+        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);*/
+
         map.setOnMyLocationButtonClickListener(this);
         map.setOnMyLocationClickListener(this);
         enableMyLocation();
+        startLocationUpdates();
     }
 
     private void enableMyLocation() {
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(MainActivity.this);
-        if ((ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)){
+        if ((ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)) {
 
             // Für Null-Pointer-Exception:
             if (map != null) {
@@ -203,11 +216,23 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 });
                 map.setMyLocationEnabled(true);
             }
-        }
-        else {
+        } else {
             PermissionUtils.requestPermission(this, LOCATION_PERMISSION_REQUEST_CODE,
                     Manifest.permission.ACCESS_FINE_LOCATION, true);
         }
+    }
+
+    @SuppressLint("MissingPermission")
+    private void startLocationUpdates() {
+        //turn on continuous location Tracking
+        fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, null);
+        enableMyLocation();
+
+    }
+
+    private void stopLocationUpdates() {
+        //turn off location tracking
+        fusedLocationProviderClient.removeLocationUpdates(locationCallback);
     }
 
     private void updateLocationValues(Location location) {
@@ -219,6 +244,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             mCurrentLocation = location;
         }
         map.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude()), 4));
+        Geocoder geocoder = new Geocoder(MainActivity.this);
+        try{
+            List<Address> addresses = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(),1);
+            mCurrentAddress = addresses.get(0);
+        }
+        catch (Exception e){
+            //do nothing really
+        }
     }
 
     @Override
@@ -375,6 +408,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        stopLocationUpdates();
 
         /*SharedPreferences settings;
         settings = getApplicationContext().getSharedPreferences("SAVE_MAP_SETTINGS", Context.MODE_PRIVATE);
