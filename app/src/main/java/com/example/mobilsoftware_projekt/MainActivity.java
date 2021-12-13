@@ -85,7 +85,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private ArrayList<Location> mTrackedPath;
     private ArrayList<LatLng> mPolylinePoints;
-    int k = 0;
 
 
     @Override
@@ -409,31 +408,32 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void drawPolyline() {
             double mCurrentLat = mCurrentLocation.getLatitude();
             double mCurrentLong = mCurrentLocation.getLongitude();
-            LatLng currentLatLon = new LatLng(mCurrentLat, mCurrentLong);
+            LatLng currentLatLng = new LatLng(mCurrentLat, mCurrentLong);
 
             //Populate ArrayLists - constantly
             mTrackedPath = new ArrayList<Location>();
             mTrackedPath.add(mCurrentLocation);
             if(mPolylinePoints.isEmpty()) {
-                mPolylinePoints.add(currentLatLon);
+                mPolylinePoints.add(currentLatLng);
             }
             else{
-                int j = mPolylinePoints.size() - 1;
-                if(mPolylinePoints.get(j) != currentLatLon){
-                    mPolylinePoints.add(currentLatLon);
+                int j = mPolylinePoints.size() -1;
+                if(!mPolylinePoints.get(j).equals(currentLatLng)){
+                    mPolylinePoints.add(currentLatLng);
                 }
+                Log.d("aktuelle Location:", mPolylinePoints.toString());
+                Log.d("--------------", mPolylinePoints.toString());
             }
             //Polyline zeichnen:
             for (int i = 0; i < mPolylinePoints.size(); i++) {
                 Polyline polyline = map.addPolyline(new PolylineOptions().
                         clickable(false).
-                        add((mPolylinePoints.get(i))));
+                        add(mPolylinePoints.get(i)));
+
             }
+            //mPolylinePoints
             TextView counter = findViewById(R.id.textView);
             counter.setText(Integer.toString(mPolylinePoints.size()));
-        //counter.setText(Integer.toString(k));
-            enableMyLocation();
-            k++;
     }
 
     //------------- Lifecycle --------------------------------------
@@ -451,6 +451,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onPause() {
         super.onPause();
+        stopLocationUpdates();
     }
 
     @Override
