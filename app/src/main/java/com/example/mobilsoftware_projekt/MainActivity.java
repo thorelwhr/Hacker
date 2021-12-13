@@ -12,6 +12,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
 import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.os.Build;
@@ -24,16 +25,22 @@ import android.view.View;
 import android.widget.Toast;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.maps.CameraUpdate;
+import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 
-public class MainActivity extends AppCompatActivity implements OnMapReadyCallback,GoogleMap.OnMyLocationButtonClickListener, GoogleMap.OnMyLocationClickListener, ActivityCompat.OnRequestPermissionsResultCallback {
+public class MainActivity extends AppCompatActivity implements OnMapReadyCallback,GoogleMap.OnMyLocationButtonClickListener,
+        GoogleMap.OnMyLocationClickListener, ActivityCompat.OnRequestPermissionsResultCallback {
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
     public static final int TEXT_REQUEST = 1; // Für Verkehrsmittelauswahl, Funktion wie bei Permission
@@ -57,7 +64,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     FusedLocationProviderClient fusedLocationProviderClient;
 
     //Location request config file for all settings related to FusedLocationProvider
-    LocationRequest locationRequest;
+    private LocationRequest locationRequest;
+
+    private LocationCallback locationCallback;
+
+    private Location mCurrentLocation;
+    private Location mLastLocation;
 
 
     @Override
@@ -67,7 +79,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
 
-        /*if ((ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)) {
+        /* mit PermissionUtils nicht mehr nötig
+
+        if ((ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)) {
             Toast.makeText(MainActivity.this, "Erlaubnis bereits erteilt!", Toast.LENGTH_SHORT).show();
         } else {
             requestFinePermission();
@@ -86,17 +100,25 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
+
         mTracking = (FloatingActionButton) findViewById(R.id.fab_tracking);
         mVerkehrsmittel = (FloatingActionButton)  findViewById(R.id.fab_verkehrsmittel);
 
         //set all properties of LocationRequest
-        locationRequest = new LocationRequest();
+        locationRequest = LocationRequest.create();
         locationRequest.setInterval(1000 * DEFAULT_UPDATE_INTERVALL);
         locationRequest.setFastestInterval(1000 * FASTEST_UPDATE_INTERVALL);
-
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
-
+        //For continuous location Updates:
+        locationCallback = new LocationCallback() {
+            @Override
+            public void onLocationResult(@NonNull LocationResult locationResult) {
+                super.onLocationResult(locationResult);
+                updateLocationValues(locationResult.getLastLocation());
+            }
+        };
 
         mTracking.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -105,6 +127,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     isTracking = true;
                     Toast.makeText(MainActivity.this, "Start tracking", Toast.LENGTH_SHORT).show();
                     mTracking.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(),R.drawable.ic_stop));
+                    mTracking.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(getApplicationContext(), R.color.red)));
                     mVerkehrsmittel.setClickable(false);
                     // Daten an Polyline-Funktion übergeben
                 }
@@ -112,7 +135,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     isTracking = false;
                     Toast.makeText(MainActivity.this, "Stop tracking", Toast.LENGTH_SHORT).show();
                     mTracking.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(),R.drawable.ic_start));
+                    mTracking.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(getApplicationContext(), R.color.green)));
                     mVerkehrsmittel.setClickable(true);
+                    //Polyline -Funktion beenden
                 }
             }
         });
@@ -169,9 +194,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 fusedLocationProviderClient.getLastLocation().addOnSuccessListener(new OnSuccessListener<Location>() {
                     @Override
                     public void onSuccess(@NonNull Location location) {
-
+                        //Got last known location apparently can be null in rare instances
                         //Put Values of location into UI
-                        updateUIValues(location);
+                        if (location != null) {
+                            updateLocationValues(location);
+                        }
                     }
                 });
                 map.setMyLocationEnabled(true);
@@ -183,14 +210,20 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
-    private void updateUIValues(Location location) {
+    private void updateLocationValues(Location location) {
         //update with new location
+        if(mCurrentLocation != null){
+            mLastLocation = mCurrentLocation;
+        }
+        if(location != null){
+            mCurrentLocation = location;
+        }
+        map.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude()), 4));
     }
 
     @Override
     public boolean onMyLocationButtonClick() {
-        Toast.makeText(this, "MyLocation button clicked", Toast.LENGTH_SHORT)
-                .show();
+        Toast.makeText(this, "MyLocation button clicked", Toast.LENGTH_SHORT).show();
         return false;
     }
 
@@ -199,7 +232,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         Toast.makeText(this, "Current location:\n" + location, Toast.LENGTH_LONG).show();
     }
 
-    /*private void requestFinePermission()
+    /* mit PermissionUtils nicht mehr nötig
+
+    private void requestFinePermission()
     {
         if (ActivityCompat.shouldShowRequestPermissionRationale(this,Manifest.permission.ACCESS_FINE_LOCATION))
         {
