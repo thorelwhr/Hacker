@@ -14,6 +14,15 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Mobilsoftware_Projekt">
         <activity
+            android:name=".ImageButtonActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity"/>
+
+        <meta-data
+            android:name="com.google.android.actions"
+            android:resource="@xml/ic_neue_tolbar" />
+
+        <activity
             android:name=".VerkehrsmittelActivity"
             android:exported="false" />
 
