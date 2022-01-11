@@ -22,23 +22,26 @@ public class VerkehrsmittelActivity extends AppCompatActivity
     public static  final String EXTRA_VM = "com.example.mobilsoftware_projekt.extra.VM";
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState)
+    {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_verkehrsmittel);
 
         final ListView vm_listView = (ListView) findViewById(R.id.vm_listView);
-        String[] values = new String[] {getString(R.string.vmFuß), getString(R.string.vmFahrrad), getString(R.string.vmOPNV),
+        String[] values = new String[]{getString(R.string.vmFuß), getString(R.string.vmFahrrad), getString(R.string.vmOPNV),
                 getString(R.string.vmMIVFahrer), getString(R.string.vmMIVMitfahrer), getString(R.string.vmSonstiges)};
 
         final ArrayList<String> vmList = new ArrayList<String>();
-        for (int i = 0; i < values.length; ++i) {
+        for (int i = 0; i < values.length; ++i)
+        {
             vmList.add(values[i]);
         }
+
         final StableArrayAdapter adapter = new StableArrayAdapter(this, android.R.layout.simple_list_item_1, vmList);
         vm_listView.setAdapter(adapter);
 
-        vm_listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-
+        vm_listView.setOnItemClickListener(new AdapterView.OnItemClickListener()
+        {
             @Override
             public void onItemClick(AdapterView<?> parent, final View view,
                                     int position, long id)
@@ -51,9 +54,9 @@ public class VerkehrsmittelActivity extends AppCompatActivity
                             public void run()
                             {
                                 Toast.makeText(VerkehrsmittelActivity.this, vmList.get(position) + " ausgewählt!", Toast.LENGTH_SHORT).show();;
-                                String mChosenVm =vmList.get(position);
-                                Intent mChosenVmIntent = new Intent();
-                                mChosenVmIntent.putExtra(EXTRA_VM, mChosenVm);
+                                String mChosenVm =vmList.get(position); // Position rauslesen
+                                Intent mChosenVmIntent = new Intent(); // Neuer Intent
+                                mChosenVmIntent.putExtra(EXTRA_VM, mChosenVm); //
                                 setResult(RESULT_OK, mChosenVmIntent);
                                 //Log.d(LOG_TAG, "End SecondActivity");
                                 finish();
