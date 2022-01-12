@@ -6,10 +6,19 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.content.ContentValues;
+import android.database.DatabaseErrorHandler;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
 import android.os.Bundle;
+import android.util.Log;
+
+
 
 public class DBHelper extends SQLiteOpenHelper
 {
+    private static final String TAG ="DatabaseHelper";
+
     public static final String TABLE_NAME = "DataList";
     public static final String COLUMN_NAME_ID = "ID";
     public static final String COLUMN_NAME_VERKEHRSMITTEL = "Verkehrsmittel";
@@ -42,8 +51,22 @@ public class DBHelper extends SQLiteOpenHelper
 
     }
 
-    public void addData()
+    public boolean addData(String ID, String Verkehrsmittel, String Zeit, String Distanz, String Datum, String Standort)
     {
+    SQLiteDatabase db = this.getWritableDatabase();
+    ContentValues contentValues = new ContentValues();
+    contentValues.put(COLUMN_NAME_ID, ID);
+    contentValues.put(COLUMN_NAME_VERKEHRSMITTEL, Verkehrsmittel);
+    contentValues.put(COLUMN_NAME_DISTANZ, Distanz);
+        contentValues.put(COLUMN_NAME_DATUM, Datum);
+        contentValues.put(COLUMN_NAME_STANDORT, Standort);
 
+        long result = db.insert(TABLE_NAME, null, contentValues);
+
+        if (result == -1) {
+            return false;
+        } else {
+            return true;
+        }
     }
 }
