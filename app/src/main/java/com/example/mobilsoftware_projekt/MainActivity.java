@@ -223,17 +223,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     //-------------------Location------------------------------------------
     private void enableMyLocation() {
+        Log.d("TAG", "enableLocation() gestartet --------");
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(MainActivity.this);
+        Log.d("TAG", "LocationProvider läuft --------");
         if ((ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)) {
 
             // Für Null-Pointer-Exception:
             if (map != null) {
                 fusedLocationProviderClient.getLastLocation().addOnSuccessListener(new OnSuccessListener<Location>() {
                     @Override
-                    public void onSuccess(@NonNull Location location) {
+                    public void onSuccess(Location location) {
+                        Log.d("TAG", "looking for last location...");
+                        Log.d("TAG", location.toString());
                         //Got last known location apparently can be null in rare instances
                         //Put Values of location into UI
                         if (location != null) {
+                            Log.d("TAG", "found last location");
                             updateLocationValues(location);
                         }
                     }
@@ -242,7 +247,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         } else {
             PermissionUtils.requestPermission(this, LOCATION_PERMISSION_REQUEST_CODE,
-                    Manifest.permission.ACCESS_FINE_LOCATION, false);
+                    Manifest.permission.ACCESS_FINE_LOCATION, true);
             Log.d("TAG", "doooooooooone ---------------------------");
         }
     }
@@ -281,12 +286,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
+                Log.d("TAG", "Geocoder gestartet");
                 Geocoder geocoder = new Geocoder(MainActivity.this);
                 try{
                     List<Address> addresses = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(),1);
                     mCurrentAddress = addresses.get(0);
+                    Log.d("TAG", "Geocoder sucht...");
                 }
                 catch (Exception e){
+                    Log.d("TAG", "Geocoder hat verkackt");
                     //do nothing or bad stuff will happen; unless you know what you're doing - but I most certainly have no clue
                 }
             }
@@ -350,7 +358,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         // Zugriff wird gewährt
         if (PermissionUtils.isPermissionGranted(permissions, grantResults,
                 Manifest.permission.ACCESS_FINE_LOCATION)) {
-            permissionDenied = false;
+            permissionDenied = false; //wird hier warum auch immer sonst als true gesetzt --> Absturz bei Erstinstallation
             Log.d("TAG", "Zugriff wird gewährt--------------------------");
             enableMyLocation();
         } else {
