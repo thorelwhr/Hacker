@@ -1,48 +1,68 @@
 package com.example.mobilsoftware_projekt;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
-import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
-import androidx.appcompat.widget.Toolbar;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.maps.CameraUpdate;
+import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.ArrayList;
+import java.util.List;
 
 
-public class MainActivity extends AppCompatActivity implements OnMapReadyCallback,GoogleMap.OnMyLocationButtonClickListener, GoogleMap.OnMyLocationClickListener, ActivityCompat.OnRequestPermissionsResultCallback {
+public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleMap.OnMyLocationButtonClickListener,
+        GoogleMap.OnMyLocationClickListener, ActivityCompat.OnRequestPermissionsResultCallback {
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
     public static final int TEXT_REQUEST = 1; // Für Verkehrsmittelauswahl, Funktion wie bei Permission
+    private static final int DEFAULT_UPDATE_INTERVALL = 10; //best practice; not necessary
+    private static final int FASTEST_UPDATE_INTERVALL = 1;
+    private static final float MAP_STANDARD_ZOOM = 10f;
     private boolean permissionDenied = false;
     private boolean isTracking = false;
 
     private GoogleMap map;
     private FloatingActionButton mTracking;
     private FloatingActionButton mVerkehrsmittel;
-    private ImageButton mImageButton;
 
     /*shared preferences
     private String lastMapStyle;
@@ -69,16 +89,20 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
     @Override
-    protected void onCreate(Bundle savedInstanceState)
-    {
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        /*if ((ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)) {
+
+
+        /* mit PermissionUtils nicht mehr nötig
+
+        if ((ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)) {
             Toast.makeText(MainActivity.this, "Erlaubnis bereits erteilt!", Toast.LENGTH_SHORT).show();
         } else {
             requestFinePermission();
         }*/
+
         //retrieve settings
 
         /*SharedPreferences settings;
@@ -92,34 +116,60 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-
         mTracking = (FloatingActionButton) findViewById(R.id.fab_tracking);
-        mVerkehrsmittel = (FloatingActionButton)  findViewById(R.id.fab_verkehrsmittel);
-        mImageButton = (ImageButton) findViewById(R.id.Imagebutton);
+        mVerkehrsmittel = (FloatingActionButton) findViewById(R.id.fab_verkehrsmittel);
 
-        Toolbar toolbar =findViewById(R.id.neue_toolbar);
-        setSupportActionBar(toolbar);
-        getSupportActionBar().setTitle("MyJournal");
+        //set all properties of LocationRequest
+        locationRequest = LocationRequest.create();
+        locationRequest.setInterval(1000 * DEFAULT_UPDATE_INTERVALL);
+        locationRequest.setFastestInterval(1000 * FASTEST_UPDATE_INTERVALL);
+        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
+        //For continuous location Updates, is triggered whenever the update interval is met:
+        locationCallback = new LocationCallback() {
+            @Override
+            public void onLocationResult(@NonNull LocationResult locationResult) {
+                super.onLocationResult(locationResult);
+                //save location
+                updateLocationValues(locationResult.getLastLocation());
+            }
+        };
 
         mTracking.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v)
-            {
-                if (!isTracking)
-                {
+            public void onClick(View v) {
+
+                mGeocodeLocations(mCurrentLocation);
+
+                if (!isTracking) {
                     isTracking = true;
-                    Toast.makeText(MainActivity.this, "Start tracking", Toast.LENGTH_SHORT).show();
-                    mTracking.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(),R.drawable.ic_stop));
+                    if(mCurrentAddress != null) {
+                        Toast.makeText(MainActivity.this, "Start tracking at: " + mCurrentAddress.getAddressLine(0), Toast.LENGTH_SHORT).show();
+                    }
+                    else{
+                        Toast.makeText(MainActivity.this, "Start tracking", Toast.LENGTH_SHORT).show();
+                    }
+                    mTracking.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_stop));
+                    mTracking.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(getApplicationContext(), R.color.red)));
                     mVerkehrsmittel.setClickable(false);
                     // Daten an Polyline-Funktion übergeben
-                }
-                else
-                {
+                    mPolylinePoints = new ArrayList<LatLng>();
+                    drawPolyline();
+
+                } else {
                     isTracking = false;
-                    Toast.makeText(MainActivity.this, "Stop tracking", Toast.LENGTH_SHORT).show();
-                    mTracking.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(),R.drawable.ic_start));
+                    if(mCurrentAddress != null) {
+                        Toast.makeText(MainActivity.this, "Stop tracking at: " + mCurrentAddress.getAddressLine(0), Toast.LENGTH_SHORT).show();
+                    }
+                    else{
+                        Toast.makeText(MainActivity.this, "Stop tracking", Toast.LENGTH_SHORT).show();
+                    }
+                    mTracking.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_start));
+                    mTracking.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(getApplicationContext(), R.color.green)));
                     mVerkehrsmittel.setClickable(true);
+                    //Polyline -Funktion beenden
+                    //mPolylinePoints.clear();
+                    drawPolyline();
                 }
             }
         });
@@ -132,19 +182,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
 
-        mImageButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(MainActivity.this, ImageButtonActivity.class);
-                startActivity(intent);
-            }
-        });
+
     }
 
+    //-------------------- Karte ----------------------------------------
     @Override
     public void onMapReady(GoogleMap googleMap) {
         map = googleMap;
-        // davor gespeicherte KArteneinstellungen werden hier wieder aufgerufen
+
+        // davor gespeicherte Karteneinstellungen werden hier wieder aufgerufen:
 
         /*if(restoredMapStyle == null) {
             map.setMapType(GoogleMap.MAP_TYPE_NORMAL);
@@ -169,45 +215,98 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             map.setBuildingsEnabled(true);
         }*/
 
-        /*if ((ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED))
-        {
-            map.setMyLocationEnabled(true);
-        }*/
-        map.setOnMyLocationButtonClickListener(this); // Wenn auf "Mein Standort" geklickt wird: Override von onMyLocationButtonClick()
-        map.setOnMyLocationClickListener(this); // Wenn auf blauem Punkt geklickt wird: Override von onMyLocationClick()
+        map.setOnMyLocationButtonClickListener(this);
+        map.setOnMyLocationClickListener(this);
         enableMyLocation();
+        startLocationUpdates();
     }
 
-    private void enableMyLocation()
-    {
-        if ((ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)){
-            if (map != null) // Für Null-Pointer-Exception
-            {
+    //-------------------Location------------------------------------------
+    private void enableMyLocation() {
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(MainActivity.this);
+        if ((ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)) {
+
+            // Für Null-Pointer-Exception:
+            if (map != null) {
+                fusedLocationProviderClient.getLastLocation().addOnSuccessListener(new OnSuccessListener<Location>() {
+                    @Override
+                    public void onSuccess(@NonNull Location location) {
+                        //Got last known location apparently can be null in rare instances
+                        //Put Values of location into UI
+                        if (location != null) {
+                            updateLocationValues(location);
+                        }
+                    }
+                });
                 map.setMyLocationEnabled(true);
             }
-        }
-        else
-            {
+        } else {
             PermissionUtils.requestPermission(this, LOCATION_PERMISSION_REQUEST_CODE,
                     Manifest.permission.ACCESS_FINE_LOCATION, true);
         }
     }
 
+    @SuppressLint("MissingPermission")
+    private void startLocationUpdates() {
+        //turn on continuous location Tracking
+        fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, null);
+        enableMyLocation();
+
+    }
+
+    private void stopLocationUpdates() {
+        //turn off location tracking
+        fusedLocationProviderClient.removeLocationUpdates(locationCallback);
+    }
+
+    private void updateLocationValues(Location location) {
+        //update with new location
+        if(mCurrentLocation != null){
+            mLastLocation = mCurrentLocation;
+        }
+        if(location != null){
+            mCurrentLocation = location;
+        }
+        map.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude()), MAP_STANDARD_ZOOM));
+        if(isTracking){
+            drawPolyline();
+        }
+    }
+
+    private void mGeocodeLocations(Location location) {
+        //separated cause this slows the app down significantly
+        //use runOnUiThread bc it's a heavy task - no clue if it actually makes a difference
+        //call this as few times as possible, if no address is found app will slow down significantly
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Geocoder geocoder = new Geocoder(MainActivity.this);
+                try{
+                    List<Address> addresses = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(),1);
+                    mCurrentAddress = addresses.get(0);
+                }
+                catch (Exception e){
+                    //do nothing or bad stuff will happen; unless you know what you're doing - but I most certainly have no clue
+                }
+            }
+        });
+
+    }
+
     @Override
-    public boolean onMyLocationButtonClick()
-    {
-        Toast.makeText(this, "MyLocation button clicked", Toast.LENGTH_SHORT)
-                .show();
+    public boolean onMyLocationButtonClick() {
+        //Toast.makeText(this, "MyLocation button clicked", Toast.LENGTH_SHORT).show();
         return false;
     }
 
     @Override
-    public void onMyLocationClick(@NonNull Location location)
-    {
+    public void onMyLocationClick(@NonNull Location location) {
         Toast.makeText(this, "Current location:\n" + location, Toast.LENGTH_LONG).show();
     }
 
-    /*private void requestFinePermission()
+    /* mit PermissionUtils nicht mehr nötig
+
+    private void requestFinePermission()
     {
         if (ActivityCompat.shouldShowRequestPermissionRationale(this,Manifest.permission.ACCESS_FINE_LOCATION))
         {
@@ -236,59 +335,58 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }*/
 
-
+    // --------- Permissions------------------------------------------------------
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults)
-    {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
-        if (requestCode != LOCATION_PERMISSION_REQUEST_CODE) // Zugriff bereits gewährt
-        {
+        // Zugriff bereits gewährt
+        if (requestCode != LOCATION_PERMISSION_REQUEST_CODE) {
             return;
         }
-        if (PermissionUtils.isPermissionGranted(permissions, grantResults, // Zugriff wird gewährt
-                Manifest.permission.ACCESS_FINE_LOCATION))
-        {
+
+        // Zugriff wird gewährt
+        if (PermissionUtils.isPermissionGranted(permissions, grantResults,
+                Manifest.permission.ACCESS_FINE_LOCATION)) {
             enableMyLocation();
-        } else
-            {
+        } else {
             permissionDenied = true;
         }
     }
 
 
     @Override
-    protected void onResumeFragments()
-    {
+    protected void onResumeFragments() {
         super.onResumeFragments();
-        if (permissionDenied) // Wenn Zugriff verweigert wir: Error Message
-        {
+        // Wenn Zugriff verweigert wird: Error Message
+        if (permissionDenied) {
             showMissingPermissionError();
             permissionDenied = false;
         }
     }
 
 
-    private void showMissingPermissionError()
-    {
+    private void showMissingPermissionError() {
         PermissionUtils.PermissionDeniedDialog
                 .newInstance(true).show(getSupportFragmentManager(), "dialog");
     }
 
+
+    //------------------- Requests & Sonstiges-----------------------------------
     @Override
-    public void  onActivityResult(int requestCode, int resultCode, Intent data)
-    {
+    public void  onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == TEXT_REQUEST) // Wenn request angenommen wurde
-        {
-            if (resultCode == RESULT_OK) // Wenn ich ein Ergebnis hab
-            {
+
+        // Wenn request angenommen wurde:
+        if (requestCode == TEXT_REQUEST) {
+
+            // Wenn ich ein Ergebnis habe:
+            if (resultCode == RESULT_OK) {
                 String verkehrsmittel = data.getStringExtra(VerkehrsmittelActivity.EXTRA_VM);
                 Toast.makeText(this, verkehrsmittel, Toast.LENGTH_SHORT).show();
                 mVerkehrsmittel = findViewById(R.id.fab_verkehrsmittel);
 
-                if (verkehrsmittel.equals(getString(R.string.vmFuß)))
-                {
+                if (verkehrsmittel.equals(getString(R.string.vmFuß))) {
                     mVerkehrsmittel.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_fussgaenger));
                 }
                 if (verkehrsmittel.equals(getString(R.string.vmFahrrad))) {
@@ -314,7 +412,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             double mCurrentLat = mCurrentLocation.getLatitude();
             double mCurrentLong = mCurrentLocation.getLongitude();
             LatLng currentLatLng = new LatLng(mCurrentLat, mCurrentLong);
+            Polyline polyline = null;
 
+            /*if(!isTracking){
+                mPolylinePoints.clear();
+            }*/
             //Populate ArrayLists - constantly
             mTrackedPath = new ArrayList<Location>();
             mTrackedPath.add(mCurrentLocation);
@@ -331,10 +433,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
             //Polyline zeichnen:
             for (int i = 0; i < mPolylinePoints.size(); i++) {
-                Polyline polyline = map.addPolyline(new PolylineOptions().
-                        clickable(false).
-                        add(mPolylinePoints.get(i)));
-
+                polyline = map.addPolyline(new PolylineOptions()
+                        .add(mPolylinePoints.toArray(new LatLng[i]))
+                        .color(R.color.blue));
             }
             //mPolylinePoints
             TextView counter = findViewById(R.id.textView);
@@ -354,15 +455,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     @Override
-    protected void onPause()
-    {
+    protected void onPause() {
         super.onPause();
+        stopLocationUpdates();
     }
 
     @Override
-    protected void onStop()
-    {
+    protected void onStop() {
         super.onStop();
+        stopLocationUpdates();
         /*SharedPreferences settings;
         settings = getApplicationContext().getSharedPreferences("SAVE_MAP_SETTINGS", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = settings.edit();
@@ -372,8 +473,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         editor.putBoolean("INDOOR_SHOWING_ON_MAP", indoorEnabled);
         editor.apply();*/
     }
-
-
 
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
@@ -388,6 +487,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        stopLocationUpdates();
 
         /*SharedPreferences settings;
         settings = getApplicationContext().getSharedPreferences("SAVE_MAP_SETTINGS", Context.MODE_PRIVATE);
@@ -399,6 +499,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         editor.apply();*/
     }
 
+    //--------------- Menu-settings -----------------------------------------
+
     /*@Override
     public boolean onCreateOptionsMenu(Menu menu)
     {
@@ -408,20 +510,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }*/
 
     /*@Override
-    public boolean onPrepareOptionsMenu(Menu menu)
-    {
-        if (trafficEnabled == true)
-        {
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        if (trafficEnabled == true) {
             MenuItem item = menu.findItem(R.id.traffic_switch);
             item.setIcon(R.drawable.ic_checked_mark);
         }
-        if (buildingEnabled == true)
-        {
+        if (buildingEnabled == true) {
             MenuItem item = menu.findItem(R.id.building_switch);
             item.setIcon(R.drawable.ic_checked_mark);
         }
-        if (indoorEnabled == true)
-        {
+        if (indoorEnabled == true) {
             MenuItem item = menu.findItem(R.id.indoor_switch);
             item.setIcon(R.drawable.ic_checked_mark);
         }
@@ -429,8 +527,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }*/
 
     /*@Override
-    public boolean onOptionsItemSelected(@NonNull MenuItem item)
-    {
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         switch (item.getItemId()){
                 case R.id.normal_map:
                     map.setMapType(GoogleMap.MAP_TYPE_NORMAL);
@@ -449,45 +546,39 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     lastMapStyle = "MAP_TYPE_TERRAIN";
                     return true;
             case R.id.traffic_switch:
-                if(trafficEnabled)
-                {
+                if(trafficEnabled) {
                     map.setTrafficEnabled(false);
                     item.setIcon(R.drawable.ic_unchecked_mark);
                     trafficEnabled = false;
                     return true;
                 }
-                else
-                    {
+                else {
                     map.setTrafficEnabled(true);
                     item.setIcon(R.drawable.ic_checked_mark);
                     trafficEnabled = true;
                     return true;
                 }
             case R.id.building_switch:
-                if(buildingEnabled)
-                {
+                if(buildingEnabled) {
                     map.setBuildingsEnabled(false);
                     item.setIcon(R.drawable.ic_unchecked_mark);
                     buildingEnabled = false;
                     return true;
                 }
-                else
-                    {
+                else {
                     map.setBuildingsEnabled(true);
                     item.setIcon(R.drawable.ic_checked_mark);
                     buildingEnabled = true;
                     return true;
                 }
             case R.id.indoor_switch:
-                if(indoorEnabled)
-                {
+                if(indoorEnabled) {
                     map.setIndoorEnabled(false);
                     item.setIcon(R.drawable.ic_unchecked_mark);
                     indoorEnabled = false;
                     return true;
                 }
-                else
-                    {
+                else {
                     map.setIndoorEnabled(true);
                     item.setIcon(R.drawable.ic_checked_mark);
                     indoorEnabled = true;
@@ -500,5 +591,4 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 return super.onOptionsItemSelected(item);
         }
     }*/
-
 }
