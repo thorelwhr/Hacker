@@ -52,7 +52,7 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleMap.OnMyLocationButtonClickListener,
         GoogleMap.OnMyLocationClickListener, ActivityCompat.OnRequestPermissionsResultCallback {
 
-    private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
+    private static final int LOCATION_PERMISSION_REQUEST_CODE = 99;
     public static final int TEXT_REQUEST = 1; // Für Verkehrsmittelauswahl, Funktion wie bei Permission
     private static final int DEFAULT_UPDATE_INTERVALL = 10; //best practice; not necessary
     private static final int FASTEST_UPDATE_INTERVALL = 1;
@@ -242,7 +242,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         } else {
             PermissionUtils.requestPermission(this, LOCATION_PERMISSION_REQUEST_CODE,
-                    Manifest.permission.ACCESS_FINE_LOCATION, true);
+                    Manifest.permission.ACCESS_FINE_LOCATION, false);
+            Log.d("TAG", "doooooooooone ---------------------------");
         }
     }
 
@@ -342,14 +343,18 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         // Zugriff bereits gewährt
         if (requestCode != LOCATION_PERMISSION_REQUEST_CODE) {
+            Log.d("TAG", "Zugriff bereits gewährt--------------------------");
             return;
         }
 
         // Zugriff wird gewährt
         if (PermissionUtils.isPermissionGranted(permissions, grantResults,
                 Manifest.permission.ACCESS_FINE_LOCATION)) {
+            permissionDenied = false;
+            Log.d("TAG", "Zugriff wird gewährt--------------------------");
             enableMyLocation();
         } else {
+            Log.d("TAG", "Zugriff nicht gewährt--------------------------");
             permissionDenied = true;
         }
     }
@@ -367,6 +372,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
     private void showMissingPermissionError() {
+        Log.d("TAG", "MissingPermissionError()-------------");
         PermissionUtils.PermissionDeniedDialog
                 .newInstance(true).show(getSupportFragmentManager(), "dialog");
     }
