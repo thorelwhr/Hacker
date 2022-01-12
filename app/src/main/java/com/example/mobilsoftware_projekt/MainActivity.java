@@ -14,6 +14,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.location.Address;
 import android.location.Geocoder;
@@ -167,6 +168,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     mTracking.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(getApplicationContext(), R.color.green)));
                     mVerkehrsmittel.setClickable(true);
                     //Polyline -Funktion beenden
+                    //mPolylinePoints.clear();
+                    drawPolyline();
                 }
             }
         });
@@ -409,7 +412,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             double mCurrentLat = mCurrentLocation.getLatitude();
             double mCurrentLong = mCurrentLocation.getLongitude();
             LatLng currentLatLng = new LatLng(mCurrentLat, mCurrentLong);
+            Polyline polyline = null;
 
+            /*if(!isTracking){
+                mPolylinePoints.clear();
+            }*/
             //Populate ArrayLists - constantly
             mTrackedPath = new ArrayList<Location>();
             mTrackedPath.add(mCurrentLocation);
@@ -426,10 +433,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
             //Polyline zeichnen:
             for (int i = 0; i < mPolylinePoints.size(); i++) {
-                Polyline polyline = map.addPolyline(new PolylineOptions().
-                        clickable(false).
-                        add(mPolylinePoints.get(i)));
-
+                polyline = map.addPolyline(new PolylineOptions()
+                        .add(mPolylinePoints.toArray(new LatLng[i]))
+                        .color(R.color.blue));
             }
             //mPolylinePoints
             TextView counter = findViewById(R.id.textView);
