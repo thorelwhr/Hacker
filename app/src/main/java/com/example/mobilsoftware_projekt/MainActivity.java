@@ -87,21 +87,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private ArrayList<Location> mTrackedPath;
     private ArrayList<LatLng> mPolylinePoints;
 
+    private String mCameraSettings = "Standard";
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-
-
-        /* mit PermissionUtils nicht mehr nötig
-
-        if ((ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)) {
-            Toast.makeText(MainActivity.this, "Erlaubnis bereits erteilt!", Toast.LENGTH_SHORT).show();
-        } else {
-            requestFinePermission();
-        }*/
 
         //retrieve settings
 
@@ -130,6 +122,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onLocationResult(@NonNull LocationResult locationResult) {
                 super.onLocationResult(locationResult);
+                Log.d("TAG", "LocationCallback() got a result");
                 //save location
                 updateLocationValues(locationResult.getLastLocation());
             }
@@ -182,6 +175,20 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
 
+        /*map.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+            @Override
+            public void onMapClick(@NonNull LatLng latLng) {
+                mCameraSettings = getString(R.string.camera_adjZ);
+            }
+        });
+
+        map.setOnMapLongClickListener(new GoogleMap.OnMapLongClickListener() {
+            @Override
+            public void onMapLongClick(@NonNull LatLng latLng) {
+                mCameraSettings = getString(R.string.camera_free);
+            }
+        });*/
+
 
     }
 
@@ -213,10 +220,24 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
         if (indoorEnabled == true){
             map.setBuildingsEnabled(true);
+            GoogleMap.getUiSettings().setIndoorLevelPickerEnabled(true);
         }*/
 
         map.setOnMyLocationButtonClickListener(this);
         map.setOnMyLocationClickListener(this);
+        map.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+            @Override
+            public void onMapClick(@NonNull LatLng latLng) {
+                mCameraSettings = getString(R.string.camera_adjZ);
+            }
+        });
+
+        map.setOnMapLongClickListener(new GoogleMap.OnMapLongClickListener() {
+            @Override
+            public void onMapLongClick(@NonNull LatLng latLng) {
+                mCameraSettings = getString(R.string.camera_free);
+            }
+        });
         enableMyLocation();
         startLocationUpdates();
     }
@@ -226,6 +247,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         Log.d("TAG", "enableLocation() gestartet --------");
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(MainActivity.this);
         Log.d("TAG", "LocationProvider läuft --------");
+
         if ((ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)) {
 
             // Für Null-Pointer-Exception:
@@ -240,6 +262,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         if (location != null) {
                             Log.d("TAG", "found last location");
                             updateLocationValues(location);
+                        }
+                        else {
+                            Log.d("TAG", "could not find location");
+                            Toast.makeText(MainActivity.this, "Keine Standortdaten gefunden, bitte " +
+                                    "überprüfe deine Einstellungen", Toast.LENGTH_SHORT).show();
                         }
                     }
                 });
@@ -256,8 +283,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void startLocationUpdates() {
         //turn on continuous location Tracking
         fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, null);
+        Log.d("TAG", "Standord Update gestartet");
         enableMyLocation();
-
     }
 
     private void stopLocationUpdates() {
@@ -269,11 +296,34 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         //update with new location
         if(mCurrentLocation != null){
             mLastLocation = mCurrentLocation;
+            Log.d("TAG", "letzter Standort:" + mLastLocation);
         }
         if(location != null){
             mCurrentLocation = location;
+            Log.d("TAG", "Standort aktualisiert :" + mCurrentLocation);
         }
-        map.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude()), MAP_STANDARD_ZOOM));
+        else {
+            Log.d("TAG", "aktueller Standort konnte nicht gefunden werden");
+        }
+
+        //Kamera fokussiert sich je nach Einstellung wieder auf aktuellen Standort oder nicht
+        if(mCameraSettings.equals(getString(R.string.camera_standard))) {
+            map.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(mCurrentLocation.getLatitude(),
+                    mCurrentLocation.getLongitude()), MAP_STANDARD_ZOOM));
+            Log.d("TAG", "Kamera folgt Standort mit Standardzoom");
+        } else if (mCameraSettings.equals(getString(R.string.camera_adjZ))){
+            float zoom = map.getCameraPosition().zoom;
+            map.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(mCurrentLocation.getLatitude(),
+                    mCurrentLocation.getLongitude()), zoom));
+            Log.d("TAG", "Kamera folgt Standort mit angepasstem Zoom");
+        } else if (mCameraSettings.equals(getString(R.string.camera_free))){
+            Log.d("TAG", "Kamera folgt Standort nicht - ist frei");
+        } else {
+            Toast.makeText(this, "Da ist etwas schiefgelaufen - die " +
+                    "Kamera stellt sich nicht mehr auf den aktuellen Standort ein", Toast.LENGTH_SHORT).show();
+            Log.d("TAG", "Toll jetzt ist etwas mit der Kamera schiefgelaufen");
+        }
+
         if(isTracking){
             drawPolyline();
         }
@@ -305,6 +355,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public boolean onMyLocationButtonClick() {
         //Toast.makeText(this, "MyLocation button clicked", Toast.LENGTH_SHORT).show();
+        mCameraSettings = getString(R.string.camera_standard);
         return false;
     }
 
@@ -313,36 +364,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         Toast.makeText(this, "Current location:\n" + location, Toast.LENGTH_LONG).show();
     }
 
-    /* mit PermissionUtils nicht mehr nötig
 
-    private void requestFinePermission()
-    {
-        if (ActivityCompat.shouldShowRequestPermissionRationale(this,Manifest.permission.ACCESS_FINE_LOCATION))
-        {
-            new AlertDialog.Builder(this)
-                    .setTitle("Hinweis")
-                    .setMessage("Karte benötigt Zugriff auf Coarse")
-                    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which)
-                        {
-                            ActivityCompat.requestPermissions(MainActivity.this,new String[] {Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_PERMISSION_REQUEST_CODE);
-                        }
-                    })
-                    .setNegativeButton("Abbruch", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            dialog.dismiss();
-                        }
-                    })
-                    .create().show();
-        }
-
-        else
-        {
-            ActivityCompat.requestPermissions(this,new String[] {Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_PERMISSION_REQUEST_CODE);
-        }
-    }*/
 
     // --------- Permissions------------------------------------------------------
     @Override
@@ -388,35 +410,41 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     //------------------- Requests & Sonstiges-----------------------------------
     @Override
-    public void  onActivityResult(int requestCode, int resultCode, Intent data) {
+    public void  onActivityResult(int requestCode, int resultCode, Intent data)
+    {
         super.onActivityResult(requestCode, resultCode, data);
-
-        // Wenn request angenommen wurde:
-        if (requestCode == TEXT_REQUEST) {
-
-            // Wenn ich ein Ergebnis habe:
-            if (resultCode == RESULT_OK) {
+        if (requestCode == TEXT_REQUEST) // Wenn request angenommen wurde
+        {
+            if (resultCode == RESULT_OK) // Wenn ich ein Ergebnis hab
+            {
                 String verkehrsmittel = data.getStringExtra(VerkehrsmittelActivity.EXTRA_VM);
                 Toast.makeText(this, verkehrsmittel, Toast.LENGTH_SHORT).show();
                 mVerkehrsmittel = findViewById(R.id.fab_verkehrsmittel);
 
-                if (verkehrsmittel.equals(getString(R.string.vmFuß))) {
-                    mVerkehrsmittel.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_fussgaenger));
+                if (verkehrsmittel.equals(getString(R.string.vmFuß)))
+                {
+                    mVerkehrsmittel.setImageDrawable(ContextCompat.getDrawable
+                            (getApplicationContext(), R.drawable.ic_fussgaenger));
                 }
                 if (verkehrsmittel.equals(getString(R.string.vmFahrrad))) {
-                    mVerkehrsmittel.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_fahrrad));
+                    mVerkehrsmittel.setImageDrawable(ContextCompat.getDrawable
+                            (getApplicationContext(), R.drawable.ic_fahrrad));
                 }
                 if (verkehrsmittel.equals(getString(R.string.vmMIVFahrer))) {
-                    mVerkehrsmittel.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_auto));
+                    mVerkehrsmittel.setImageDrawable(ContextCompat.getDrawable
+                            (getApplicationContext(), R.drawable.ic_auto));
                 }
                 if (verkehrsmittel.equals(getString(R.string.vmMIVMitfahrer))) {
-                    mVerkehrsmittel.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_mitfahrer));
+                    mVerkehrsmittel.setImageDrawable(ContextCompat.getDrawable
+                            (getApplicationContext(), R.drawable.ic_mitfahrer));
                 }
                 if (verkehrsmittel.equals(getString(R.string.vmOPNV))) {
-                    mVerkehrsmittel.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_opnv));
+                    mVerkehrsmittel.setImageDrawable(ContextCompat.getDrawable
+                            (getApplicationContext(), R.drawable.ic_opnv));
                 }
                 if (verkehrsmittel.equals(getString(R.string.vmSonstiges))) {
-                    mVerkehrsmittel.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_sonstiges));
+                    mVerkehrsmittel.setImageDrawable(ContextCompat.getDrawable
+                            (getApplicationContext(), R.drawable.ic_sonstiges));
                 }
             }
         }
@@ -442,14 +470,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 if(!mPolylinePoints.get(j).equals(currentLatLng)){
                     mPolylinePoints.add(currentLatLng);
                 }
-                Log.d("aktuelle Location:", mPolylinePoints.toString());
-                Log.d("--------------", mPolylinePoints.toString());
+                Log.d("TAG", "aktuelle Location: " + mPolylinePoints.toString());
+                Log.d("TAG", "-------------- " + mPolylinePoints.toString());
             }
             //Polyline zeichnen:
             for (int i = 0; i < mPolylinePoints.size(); i++) {
                 polyline = map.addPolyline(new PolylineOptions()
                         .add(mPolylinePoints.toArray(new LatLng[i]))
                         .color(R.color.blue));
+                Log.d("TAG", "Neuer Punkt an " + mPolylinePoints.get(i) + " hinzugefügt");
             }
             //mPolylinePoints
             TextView counter = findViewById(R.id.textView);
@@ -588,12 +617,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             case R.id.indoor_switch:
                 if(indoorEnabled) {
                     map.setIndoorEnabled(false);
+                    GoogleMap.getUiSettings().setIndoorLevelPickerEnabled(false);
                     item.setIcon(R.drawable.ic_unchecked_mark);
                     indoorEnabled = false;
                     return true;
                 }
                 else {
                     map.setIndoorEnabled(true);
+                    GoogleMap.getUiSettings().setIndoorLevelPickerEnabled(true);
                     item.setIcon(R.drawable.ic_checked_mark);
                     indoorEnabled = true;
                     return true;
