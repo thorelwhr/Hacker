@@ -21,5 +21,10 @@
     <string name="vmMIVMitfahrer">MIV-Mitfahrer</string>
     <string name="vmSonstiges">Sonstiges</string>
 
+    <!--    Standort-Kamera Settings    -->
+    <string name="camera_standard">Standard</string>
+    <string name="camera_adjZ">followAdjustedZoom</string>
+    <string name="camera_free">free_camera</string>
+
 
 </resources>
