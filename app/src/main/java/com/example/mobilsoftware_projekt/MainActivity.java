@@ -78,6 +78,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private LocationRequest locationRequest;
 
     private LocationCallback locationCallback;
+    private boolean locationCallbackCalled = false;
 
     private Location mCurrentLocation;
     private Location mLastLocation;
@@ -111,6 +112,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mTracking = (FloatingActionButton) findViewById(R.id.fab_tracking);
         mVerkehrsmittel = (FloatingActionButton) findViewById(R.id.fab_verkehrsmittel);
 
+        mLocationCallback();
+        /*
         //set all properties of LocationRequest
         locationRequest = LocationRequest.create();
         locationRequest.setInterval(1000 * DEFAULT_UPDATE_INTERVALL);
@@ -126,7 +129,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 //save location
                 updateLocationValues(locationResult.getLastLocation());
             }
-        };
+        };*/
 
         mTracking.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -161,8 +164,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     mTracking.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(getApplicationContext(), R.color.green)));
                     mVerkehrsmittel.setClickable(true);
                     //Polyline -Funktion beenden
-                    //mPolylinePoints.clear();
-                    drawPolyline();
+                    deletePolyline();
                 }
             }
         });
@@ -238,6 +240,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 mCameraSettings = getString(R.string.camera_free);
             }
         });
+
         enableMyLocation();
         startLocationUpdates();
     }
@@ -283,13 +286,35 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void startLocationUpdates() {
         //turn on continuous location Tracking
         fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, null);
-        Log.d("TAG", "Standord Update gestartet");
+        Log.d("TAG", "Standort Update gestartet");
         enableMyLocation();
     }
 
     private void stopLocationUpdates() {
         //turn off location tracking
         fusedLocationProviderClient.removeLocationUpdates(locationCallback);
+    }
+
+    private void mLocationCallback(){
+        Log.d("TAG", "mLocationUpdate() gestartet");
+        //set all properties of LocationRequest
+        locationRequest = LocationRequest.create();
+        locationRequest.setInterval(1000 * DEFAULT_UPDATE_INTERVALL);
+        locationRequest.setFastestInterval(1000 * FASTEST_UPDATE_INTERVALL);
+        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+
+        //For continuous location Updates, is triggered whenever the update interval is met:
+        locationCallback = new LocationCallback() {
+            @Override
+            public void onLocationResult(@NonNull LocationResult locationResult) {
+                super.onLocationResult(locationResult);
+                Log.d("TAG", "LocationCallback() got a result");
+                //save location
+                updateLocationValues(locationResult.getLastLocation());
+                //locationCallbackCalled = true;
+            }
+        };
+        Log.d("TAG", "mLocationCallback() am Ende");
     }
 
     private void updateLocationValues(Location location) {
@@ -323,7 +348,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     "Kamera stellt sich nicht mehr auf den aktuellen Standort ein", Toast.LENGTH_SHORT).show();
             Log.d("TAG", "Toll jetzt ist etwas mit der Kamera schiefgelaufen");
         }
-
+        /*if(!locationCallbackCalled){
+            mLocationCallback();
+        }*/
         if(isTracking){
             drawPolyline();
         }
@@ -383,6 +410,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             permissionDenied = false; //wird hier warum auch immer sonst als true gesetzt --> Absturz bei Erstinstallation
             Log.d("TAG", "Zugriff wird gewährt--------------------------");
             enableMyLocation();
+            //mLocationCallback();
         } else {
             Log.d("TAG", "Zugriff nicht gewährt--------------------------");
             permissionDenied = true;
@@ -410,7 +438,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     //------------------- Requests & Sonstiges-----------------------------------
     @Override
-    public void  onActivityResult(int requestCode, int resultCode, Intent data)
+    public void onActivityResult(int requestCode, int resultCode, Intent data)
     {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == TEXT_REQUEST) // Wenn request angenommen wurde
@@ -483,6 +511,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             //mPolylinePoints
             TextView counter = findViewById(R.id.textView);
             counter.setText(Integer.toString(mPolylinePoints.size()));
+    }
+
+    private void  deletePolyline(){
+        mPolylinePoints.clear();
+        map.clear();
+        Log.d("TAG", String.valueOf(mPolylinePoints.size()));
     }
 
     //------------- Lifecycle --------------------------------------
