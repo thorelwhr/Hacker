@@ -33,31 +33,28 @@ public class DBHelper extends SQLiteOpenHelper
 
 
 
-    public DBHelper(@Nullable Context context, @Nullable String name, @Nullable SQLiteDatabase.CursorFactory factory, int version)
-    {
+    public DBHelper(@Nullable Context context, @Nullable String name, @Nullable SQLiteDatabase.CursorFactory factory, int version) {
         super(context, name, factory, version);
     }
 
     @Override
-    public void onCreate(SQLiteDatabase db)
-    {
+    public void onCreate(SQLiteDatabase db) {
         db.execSQL(CreateDatabase);
 
     }
 
     @Override
-    public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion)
-    {
+    public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
 
     }
 
-    public boolean addData(String ID, String Verkehrsmittel, String Zeit, String Distanz, String Datum, String Standort)
-    {
-    SQLiteDatabase db = this.getWritableDatabase();
-    ContentValues contentValues = new ContentValues();
-    contentValues.put(COLUMN_NAME_ID, ID);
-    contentValues.put(COLUMN_NAME_VERKEHRSMITTEL, Verkehrsmittel);
-    contentValues.put(COLUMN_NAME_DISTANZ, Distanz);
+    public boolean addData(String ID, String Verkehrsmittel, String Zeit, String Distanz, String Datum, String Standort) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(COLUMN_NAME_ID, ID);
+        contentValues.put(COLUMN_NAME_VERKEHRSMITTEL, Verkehrsmittel);
+        contentValues.put(COLUMN_NAME_ZEIT, Zeit);
+        contentValues.put(COLUMN_NAME_DISTANZ, Distanz);
         contentValues.put(COLUMN_NAME_DATUM, Datum);
         contentValues.put(COLUMN_NAME_STANDORT, Standort);
 
@@ -65,8 +62,13 @@ public class DBHelper extends SQLiteOpenHelper
 
         if (result == -1) {
             return false;
-        } else {
+        }
+        else {
             return true;
         }
+    }
+
+    public void getData(){
+
     }
 }
