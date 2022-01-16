@@ -24,6 +24,8 @@ import android.os.Bundle;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.DialogFragment;
 import androidx.appcompat.app.AppCompatActivity;
+
+import android.util.Log;
 import android.widget.Toast;
 
 /**
@@ -41,10 +43,11 @@ public abstract class PermissionUtils {
             // Display a dialog with rationale.
             PermissionUtils.RationaleDialog.newInstance(requestId, finishActivity)
                     .show(activity.getSupportFragmentManager(), "dialog");
+            Log.d("TAG", "blaaaaaaaaaaaah--------------");
         } else {
             // Location permission has not been granted yet, request it.
             ActivityCompat.requestPermissions(activity, new String[]{permission}, requestId);
-
+            Log.d("TAG", "whyyyyyyyyyyyyyyyyyyy--------------");
         }
     }
 
@@ -58,8 +61,8 @@ public abstract class PermissionUtils {
                                               String permission) {
         for (int i = 0; i < grantPermissions.length; i++) {
             if (permission.equals(grantPermissions[i])) {
-                return grantResults[i] == PackageManager.PERMISSION_GRANTED;
-            }
+                Log.d("TAG", "Permission granted ------------------");
+                return grantResults[i] == PackageManager.PERMISSION_GRANTED; }
         }
         return false;
     }
