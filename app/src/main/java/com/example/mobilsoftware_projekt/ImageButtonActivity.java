@@ -14,7 +14,7 @@ public class ImageButtonActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_image_button);
 
-        Toolbar toolbar =findViewById(R.id.toolbar_fuer_ImageButtonActivity);
+        Toolbar toolbar = findViewById(R.id.toolbar_fuer_ImageButtonActivity);
         setSupportActionBar(toolbar);
         getSupportActionBar().setTitle("Trackdaten");
 
