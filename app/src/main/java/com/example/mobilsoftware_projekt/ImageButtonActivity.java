@@ -12,12 +12,9 @@ import java.util.ArrayList;
 
 public class ImageButtonActivity extends AppCompatActivity
 {
-
     ArrayList<String> dataList;
     ListView listview = findViewById(R.id.ListView);
-    DBHelper mDBHelper;
-
-
+    DBHelper mDBHelper = new DBHelper(this);
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -25,7 +22,7 @@ public class ImageButtonActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_image_button);
 
-        mDBHelper = new DBHelper(this);
+
 
         Toolbar toolbar =findViewById(R.id.toolbar_fuer_ImageButtonActivity);
         setSupportActionBar(toolbar);
@@ -37,11 +34,23 @@ public class ImageButtonActivity extends AppCompatActivity
         ActionBar zuruck = getSupportActionBar();
         zuruck.setDisplayHomeAsUpEnabled(true);
 
-        getDatata();
+        getData();
     }
 
-    protected void getDatata()
+    protected void getData()
     {
+        if(mDBHelper != null)
+        {
+            Cursor data = mDBHelper.getData();
+            listview = new ListView(this);
+
+            while()
+            {
+
+            }
+
+        }
+
 
 
     }
