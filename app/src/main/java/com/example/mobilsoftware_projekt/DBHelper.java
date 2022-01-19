@@ -4,6 +4,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Context;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.content.ContentValues;
@@ -25,18 +26,16 @@ public class DBHelper extends SQLiteOpenHelper
     public static final String COLUMN_NAME_ZEIT = "Zeit";
     public static final String COLUMN_NAME_DISTANZ = "Distanz";
     public static final String COLUMN_NAME_DATUM = "Datum";
-    public static final String COLUMN_NAME_STANDORT = "Standorte";
+    public static final String COLUMN_NAME_STANDORT = "Standort";
 
     public static final String CreateDatabase = "CREATE TABLE "+ TABLE_NAME+ "("+  COLUMN_NAME_ID+ "INTEGER PRIMARY KEY AUTOINCREMENT, "+
             COLUMN_NAME_VERKEHRSMITTEL+ "TEXT NOT NULL, "+ COLUMN_NAME_ZEIT+ "TEXT NOT NULL, "+ COLUMN_NAME_DISTANZ+ "TEXT NOT NULL, "+
             COLUMN_NAME_DATUM+ "TEXT NOT NULL, "+ COLUMN_NAME_STANDORT+ "TEXT NOT NULL);";
 
 
+    private static final String _DB_FILE_NAME = "locations.db";
+    public DBHelper(@Nullable Context context){super(context, _DB_FILE_NAME, null, 1 );}
 
-    public DBHelper(@Nullable Context context, @Nullable String name, @Nullable SQLiteDatabase.CursorFactory factory, int version)
-    {
-        super(context, name, factory, version);
-    }
 
     @Override
     public void onCreate(SQLiteDatabase db)
@@ -58,15 +57,25 @@ public class DBHelper extends SQLiteOpenHelper
     contentValues.put(COLUMN_NAME_ID, ID);
     contentValues.put(COLUMN_NAME_VERKEHRSMITTEL, Verkehrsmittel);
     contentValues.put(COLUMN_NAME_DISTANZ, Distanz);
-        contentValues.put(COLUMN_NAME_DATUM, Datum);
-        contentValues.put(COLUMN_NAME_STANDORT, Standort);
+    contentValues.put(COLUMN_NAME_DATUM, Datum);
+    contentValues.put(COLUMN_NAME_STANDORT, Standort);
 
-        long result = db.insert(TABLE_NAME, null, contentValues);
+    long result = db.insert(TABLE_NAME, null, contentValues);
 
-        if (result == -1) {
-            return false;
-        } else {
+    if (result == -1)
+    {
+        return false;
+    }
+    else {
             return true;
         }
+    }
+
+    public Cursor getData()
+    {
+        SQLiteDatabase db = this.getWritableDatabase();
+        String query = "SELECT * FROM " + TABLE_NAME;
+        Cursor data = db.rawQuery(query,null);
+        return data;
     }
 }
