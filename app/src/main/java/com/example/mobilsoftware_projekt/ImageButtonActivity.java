@@ -9,27 +9,24 @@ import android.os.Bundle;
 import android.widget.ListView;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class ImageButtonActivity extends AppCompatActivity
 {
     ArrayList<String> dataList;
-    ListView listview = findViewById(R.id.ListView);
     DBHelper mDBHelper = new DBHelper(this);
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_image_button);
 
-
-
+        ListView listview = findViewById(R.id.listview);
         Toolbar toolbar =findViewById(R.id.toolbar_fuer_ImageButtonActivity);
         setSupportActionBar(toolbar);
         getSupportActionBar().setTitle("Trackdaten");
-
-
-
 
         ActionBar zuruck = getSupportActionBar();
         zuruck.setDisplayHomeAsUpEnabled(true);
@@ -42,13 +39,17 @@ public class ImageButtonActivity extends AppCompatActivity
         if(mDBHelper != null)
         {
             Cursor data = mDBHelper.getData();
-            listview = new ListView(this);
+            ListView listview = new ListView(this);
 
-            while()
+            while(data.moveToNext())
             {
-
+                dataList.add(data.getString(1));
+                dataList.add(data.getString(2));
+                dataList.add(data.getString(3));
+                dataList.add(data.getString(4));
+                dataList.add(data.getString(5));
             }
-
+            data.close();
         }
 
 
