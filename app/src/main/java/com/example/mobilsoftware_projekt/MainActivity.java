@@ -26,8 +26,11 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.appcompat.widget.Toolbar;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
@@ -47,10 +50,10 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
 
 
-public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleMap.OnMyLocationButtonClickListener,
-        GoogleMap.OnMyLocationClickListener, ActivityCompat.OnRequestPermissionsResultCallback {
+public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleMap.OnMyLocationButtonClickListener, GoogleMap.OnMyLocationClickListener, ActivityCompat.OnRequestPermissionsResultCallback {
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 99;
     public static final int TEXT_REQUEST = 1; // Für Verkehrsmittelauswahl, Funktion wie bei Permission
@@ -63,6 +66,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private GoogleMap map;
     private FloatingActionButton mTracking;
     private FloatingActionButton mVerkehrsmittel;
+    private ImageButton mImageButton;
 
     /*shared preferences
     private String lastMapStyle;
@@ -96,6 +100,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(MainActivity.this);
+        Log.d("TAG", "LocationProvider läuft --------");
+
         //retrieve settings
 
         /*SharedPreferences settings;
@@ -111,25 +118,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         mTracking = (FloatingActionButton) findViewById(R.id.fab_tracking);
         mVerkehrsmittel = (FloatingActionButton) findViewById(R.id.fab_verkehrsmittel);
+        mImageButton = (ImageButton) findViewById(R.id.Imagebutton);
 
         mLocationCallback();
-        /*
-        //set all properties of LocationRequest
-        locationRequest = LocationRequest.create();
-        locationRequest.setInterval(1000 * DEFAULT_UPDATE_INTERVALL);
-        locationRequest.setFastestInterval(1000 * FASTEST_UPDATE_INTERVALL);
-        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        Toolbar toolbar = findViewById(R.id.neue_toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setTitle("MyJournal");
 
-        //For continuous location Updates, is triggered whenever the update interval is met:
-        locationCallback = new LocationCallback() {
-            @Override
-            public void onLocationResult(@NonNull LocationResult locationResult) {
-                super.onLocationResult(locationResult);
-                Log.d("TAG", "LocationCallback() got a result");
-                //save location
-                updateLocationValues(locationResult.getLastLocation());
-            }
-        };*/
 
         mTracking.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -139,10 +134,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                 if (!isTracking) {
                     isTracking = true;
-                    if(mCurrentAddress != null) {
+                    if (mCurrentAddress != null) {
                         Toast.makeText(MainActivity.this, "Start tracking at: " + mCurrentAddress.getAddressLine(0), Toast.LENGTH_SHORT).show();
-                    }
-                    else{
+                    } else {
                         Toast.makeText(MainActivity.this, "Start tracking", Toast.LENGTH_SHORT).show();
                     }
                     mTracking.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_stop));
@@ -154,10 +148,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                 } else {
                     isTracking = false;
-                    if(mCurrentAddress != null) {
+                    if (mCurrentAddress != null) {
                         Toast.makeText(MainActivity.this, "Stop tracking at: " + mCurrentAddress.getAddressLine(0), Toast.LENGTH_SHORT).show();
-                    }
-                    else{
+                    } else {
                         Toast.makeText(MainActivity.this, "Stop tracking", Toast.LENGTH_SHORT).show();
                     }
                     mTracking.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_start));
@@ -165,6 +158,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     mVerkehrsmittel.setClickable(true);
                     //Polyline -Funktion beenden
                     deletePolyline();
+                    mAddToDatatabase();
                 }
             }
         });
@@ -177,26 +171,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
 
-        /*map.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+        mImageButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onMapClick(@NonNull LatLng latLng) {
-                mCameraSettings = getString(R.string.camera_adjZ);
+            public void onClick(View v) {
+                Intent intent = new Intent(MainActivity.this, ImageButtonActivity.class);
+                startActivity(intent);
             }
         });
-
-        map.setOnMapLongClickListener(new GoogleMap.OnMapLongClickListener() {
-            @Override
-            public void onMapLongClick(@NonNull LatLng latLng) {
-                mCameraSettings = getString(R.string.camera_free);
-            }
-        });*/
-
-
     }
 
     //-------------------- Karte ----------------------------------------
     @Override
     public void onMapReady(GoogleMap googleMap) {
+        Log.d("TAG", "onMapReady() gestartet");
         map = googleMap;
 
         // davor gespeicherte Karteneinstellungen werden hier wieder aufgerufen:
@@ -226,6 +213,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }*/
 
         map.setOnMyLocationButtonClickListener(this);
+        Log.d("TAG", "onMyLocationButton sollte angezeigt werden");
+        map.getUiSettings().setMyLocationButtonEnabled(true);
         map.setOnMyLocationClickListener(this);
         map.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
             @Override
@@ -248,8 +237,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     //-------------------Location------------------------------------------
     private void enableMyLocation() {
         Log.d("TAG", "enableLocation() gestartet --------");
-        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(MainActivity.this);
-        Log.d("TAG", "LocationProvider läuft --------");
+
 
         if ((ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)) {
 
@@ -265,8 +253,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         if (location != null) {
                             Log.d("TAG", "found last location");
                             updateLocationValues(location);
-                        }
-                        else {
+                        } else {
                             Log.d("TAG", "could not find location");
                             Toast.makeText(MainActivity.this, "Keine Standortdaten gefunden, bitte " +
                                     "überprüfe deine Einstellungen", Toast.LENGTH_SHORT).show();
@@ -295,7 +282,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         fusedLocationProviderClient.removeLocationUpdates(locationCallback);
     }
 
-    private void mLocationCallback(){
+    private void mLocationCallback() {
         Log.d("TAG", "mLocationUpdate() gestartet");
         //set all properties of LocationRequest
         locationRequest = LocationRequest.create();
@@ -349,7 +336,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             Log.d("TAG", "Toll jetzt ist etwas mit der Kamera schiefgelaufen");
         }
         /*if(!locationCallbackCalled){
-            mLocationCallback();
+            startLocationUpdates();
         }*/
         if(isTracking){
             drawPolyline();
@@ -441,18 +428,18 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onActivityResult(int requestCode, int resultCode, Intent data)
     {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == TEXT_REQUEST) // Wenn request angenommen wurde
-        {
-            if (resultCode == RESULT_OK) // Wenn ich ein Ergebnis hab
-            {
+
+        // Wenn request angenommen wurde:
+        if (requestCode == TEXT_REQUEST) {
+
+            // Wenn ich ein Ergebnis habe:
+            if (resultCode == RESULT_OK) {
                 String verkehrsmittel = data.getStringExtra(VerkehrsmittelActivity.EXTRA_VM);
                 Toast.makeText(this, verkehrsmittel, Toast.LENGTH_SHORT).show();
                 mVerkehrsmittel = findViewById(R.id.fab_verkehrsmittel);
 
-                if (verkehrsmittel.equals(getString(R.string.vmFuß)))
-                {
-                    mVerkehrsmittel.setImageDrawable(ContextCompat.getDrawable
-                            (getApplicationContext(), R.drawable.ic_fussgaenger));
+                if (verkehrsmittel.equals(getString(R.string.vmFuß))) {
+                    mVerkehrsmittel.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_fussgaenger));
                 }
                 if (verkehrsmittel.equals(getString(R.string.vmFahrrad))) {
                     mVerkehrsmittel.setImageDrawable(ContextCompat.getDrawable
@@ -484,9 +471,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             LatLng currentLatLng = new LatLng(mCurrentLat, mCurrentLong);
             Polyline polyline = null;
 
-            /*if(!isTracking){
-                mPolylinePoints.clear();
-            }*/
             //Populate ArrayLists - constantly
             mTrackedPath = new ArrayList<Location>();
             mTrackedPath.add(mCurrentLocation);
@@ -524,21 +508,25 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onStart() {
         super.onStart();
+        Log.d("TAG", "onStart() gestartet");
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        Log.d("TAG", "onResume() gestartet");
     }
 
     @Override
     protected void onPause() {
         super.onPause();
+        Log.d("TAG", "onResume() gestartet");
         stopLocationUpdates();
     }
 
     @Override
     protected void onStop() {
+        Log.d("TAG", "onStop() gestartet");
         super.onStop();
         stopLocationUpdates();
         /*SharedPreferences settings;
@@ -554,16 +542,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
+        Log.d("TAG", "onSaveInstanceState() gestartet");
     }
 
     @Override
     public void onLowMemory() {
         super.onLowMemory();
+        Log.d("TAG", "onLowMemory() gestartet");
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        Log.d("TAG", "onDestroy() gestartet");
         stopLocationUpdates();
 
         /*SharedPreferences settings;
@@ -574,6 +565,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         editor.putBoolean("BUILDINGS_SHOWING_ON_MAP", buildingEnabled);
         editor.putBoolean("INDOOR_SHOWING_ON_MAP", indoorEnabled);
         editor.apply();*/
+    }
+
+    //---------------- Database stuff ------------------------------------
+    public void mAddToDatatabase(){
+        Log.d("TAG", "mAddToDatabase() gestartet");
+
     }
 
     //--------------- Menu-settings -----------------------------------------
