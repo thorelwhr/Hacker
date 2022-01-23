@@ -57,36 +57,45 @@ public class ImageButtonActivity extends AppCompatActivity
                 dataList.add(data.getString(3));
                 dataList.add(data.getString(4));
                 dataList.add(data.getString(5));
+                dataList.add(data.getString(6));
+                dataList.add(data.getString(7));
             }
             data.close();
         }
     }
 
     public void mOrderArray(){
-        boolean mTimeToAddToArray = false;
         String mID = "", mVerkehrsmittel = "", mDuration = "", mLength = "", mDate = "", mTrack = "";
+        String mStart = "", mEnde = "";
         for(int i = 0; i < dataList.size(); i++){
             Log.d("TAG", "for-SChleife: "+ i);
-            String mComplete;
-            if (i % 6 == 0){
+            String mComplete, mFullyComplete;
+            if (i % 8 == 0){
                 mID = dataList.get(i) + ".: ";
             }
-            else if (i% 6 == 1){
+            else if (i% 8 == 1){
                 mVerkehrsmittel = "Verkehrsmittel: " +dataList.get(i) + "; ";
             }
-            else if(i%6==2){
+            else if(i%8==2){
                 mDuration = "Dauer: " + dataList.get(i) + "; ";
             }
-            else if(i%6==3){
+            else if(i%8==3){
                 mLength = "Streckenlänge: " + dataList.get(i) + "; ";
             }
-            else if(i%6==4){
+            else if(i%8==4){
                 mDate = "Datum: " + dataList.get(i) + "; ";
             }
-            else {
+            else if(i%8==5){
                 mTrack = "Weg: " + dataList.get(i) + "; ";
-                mComplete = mID + mVerkehrsmittel + mDuration + mLength + mDate + mTrack;
-                Log.d("TAG", mComplete);
+            }
+            else if(i%8==6){
+                mStart = "Wegstart: " + dataList.get(i) + "; ";
+            }
+            else {
+                mEnde = "Wegende: " + dataList.get(i) + "; ";
+                mComplete = mID + mVerkehrsmittel + mDuration + mLength + mDate + mStart + mEnde;
+                mFullyComplete = mID + mVerkehrsmittel + mDuration + mLength + mDate + mTrack + mStart + mEnde;
+                Log.d("TAG", mFullyComplete);
                 mOrderedList.add(mComplete);
             }
         }
