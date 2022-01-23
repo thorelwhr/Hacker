@@ -6,6 +6,8 @@ import androidx.appcompat.widget.Toolbar;
 
 import android.database.Cursor;
 import android.os.Bundle;
+import android.util.Log;
+import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
 import java.util.ArrayList;
@@ -13,7 +15,8 @@ import java.util.List;
 
 public class ImageButtonActivity extends AppCompatActivity
 {
-    ArrayList<String> dataList;
+    ArrayList<String> dataList = new ArrayList<>();
+    ArrayList<String> mOrderedList = new ArrayList<>();
     DBHelper mDBHelper = new DBHelper(this);
 
     @Override
@@ -23,7 +26,7 @@ public class ImageButtonActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_image_button);
 
-        ListView listview = findViewById(R.id.listview);
+        ListView listview = (ListView) findViewById(R.id.listview);
         Toolbar toolbar =findViewById(R.id.toolbar_fuer_ImageButtonActivity);
         setSupportActionBar(toolbar);
         getSupportActionBar().setTitle("Trackdaten");
@@ -32,6 +35,11 @@ public class ImageButtonActivity extends AppCompatActivity
         zuruck.setDisplayHomeAsUpEnabled(true);
 
         getData();
+
+        mOrderArray();
+
+        ArrayAdapter arrayAdapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, mOrderedList);
+        listview.setAdapter(arrayAdapter);
     }
 
     protected void getData()
@@ -43,6 +51,7 @@ public class ImageButtonActivity extends AppCompatActivity
 
             while(data.moveToNext())
             {
+                dataList.add(data.getString(0));
                 dataList.add(data.getString(1));
                 dataList.add(data.getString(2));
                 dataList.add(data.getString(3));
@@ -51,8 +60,35 @@ public class ImageButtonActivity extends AppCompatActivity
             }
             data.close();
         }
+    }
 
-
-
+    public void mOrderArray(){
+        boolean mTimeToAddToArray = false;
+        String mID = "", mVerkehrsmittel = "", mDuration = "", mLength = "", mDate = "", mTrack = "";
+        for(int i = 0; i < dataList.size(); i++){
+            Log.d("TAG", "for-SChleife: "+ i);
+            String mComplete;
+            if (i % 6 == 0){
+                mID = dataList.get(i) + ".: ";
+            }
+            else if (i% 6 == 1){
+                mVerkehrsmittel = "Verkehrsmittel: " +dataList.get(i) + "; ";
+            }
+            else if(i%6==2){
+                mDuration = "Dauer: " + dataList.get(i) + "; ";
+            }
+            else if(i%6==3){
+                mLength = "Streckenlänge: " + dataList.get(i) + "; ";
+            }
+            else if(i%6==4){
+                mDate = "Datum: " + dataList.get(i) + "; ";
+            }
+            else {
+                mTrack = "Weg: " + dataList.get(i) + "; ";
+                mComplete = mID + mVerkehrsmittel + mDuration + mLength + mDate + mTrack;
+                Log.d("TAG", mComplete);
+                mOrderedList.add(mComplete);
+            }
+        }
     }
 }
