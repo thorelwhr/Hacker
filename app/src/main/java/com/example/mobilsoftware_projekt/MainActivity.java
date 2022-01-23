@@ -21,6 +21,7 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -48,8 +49,15 @@ import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Timer;
 
 
@@ -94,6 +102,36 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private ArrayList<LatLng> mPolylinePoints;
 
     private String mCameraSettings = "Standard";
+    private String vm = "Fuß";
+
+    DBHelper mDBHelper = new DBHelper(this);
+
+    //Timer Stuff:
+    private long startTime = 0;
+    private String mTrackingDuration;
+
+    //runs without a timer by reposting this handler at the end of the runnable
+    Handler timerHandler = new Handler();
+    Runnable timerRunnable = new Runnable() {
+        @Override
+        public void run() {
+            //Log.d("TAG", String.valueOf(System.currentTimeMillis()));
+            long millis = System.currentTimeMillis() - startTime;
+            //Log.d("TAG", String.valueOf(millis));
+            int seconds = (int) (millis / 1000);
+            //Log.d("TAG", String.valueOf(seconds));
+            int minutes = seconds / 60;
+            //Log.d("TAG", String.valueOf(minutes));
+            int hours = minutes/60;
+            seconds = seconds % 60;
+            minutes = minutes % 60;
+            //Log.d("TAG", String.valueOf(seconds));
+
+            mTrackingDuration = String.format("%d:%02d:%02d", hours, minutes, seconds);
+
+            timerHandler.postDelayed(this, 500);
+        }
+    };
 
 
     @Override
@@ -136,6 +174,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                 if (!isTracking) {
                     isTracking = true;
+                    startTime = System.currentTimeMillis();
+                    timerHandler.postDelayed(timerRunnable, 0);
                     if (mCurrentAddress != null) {
                         Toast.makeText(MainActivity.this, "Start tracking at: " + mCurrentAddress.getAddressLine(0), Toast.LENGTH_SHORT).show();
                     } else {
@@ -150,6 +190,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                 } else {
                     isTracking = false;
+                    timerHandler.removeCallbacks(timerRunnable);
                     if (mCurrentAddress != null) {
                         Toast.makeText(MainActivity.this, "Stop tracking at: " + mCurrentAddress.getAddressLine(0), Toast.LENGTH_SHORT).show();
                     } else {
@@ -158,9 +199,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     mTracking.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_start));
                     mTracking.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(getApplicationContext(), R.color.green)));
                     mVerkehrsmittel.setClickable(true);
+
+                    //Daten an Datenbank übergeben
+                    mAddToDatatabase();
+
                     //Polyline -Funktion beenden
                     deletePolyline();
-                    mAddToDatatabase();
                 }
             }
         });
@@ -457,27 +501,34 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 mVerkehrsmittel = findViewById(R.id.fab_verkehrsmittel);
 
                 if (verkehrsmittel.equals(getString(R.string.vmFuß))) {
-                    mVerkehrsmittel.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_fussgaenger));
+                    mVerkehrsmittel.setImageDrawable(ContextCompat.getDrawable
+                            (getApplicationContext(), R.drawable.ic_fussgaenger));
+                    vm = getString(R.string.vmFuß);
                 }
                 if (verkehrsmittel.equals(getString(R.string.vmFahrrad))) {
                     mVerkehrsmittel.setImageDrawable(ContextCompat.getDrawable
                             (getApplicationContext(), R.drawable.ic_fahrrad));
+                    vm = getString(R.string.vmFahrrad);
                 }
                 if (verkehrsmittel.equals(getString(R.string.vmMIVFahrer))) {
                     mVerkehrsmittel.setImageDrawable(ContextCompat.getDrawable
                             (getApplicationContext(), R.drawable.ic_auto));
+                    vm = getString(R.string.vmMIVFahrer);
                 }
                 if (verkehrsmittel.equals(getString(R.string.vmMIVMitfahrer))) {
                     mVerkehrsmittel.setImageDrawable(ContextCompat.getDrawable
                             (getApplicationContext(), R.drawable.ic_mitfahrer));
+                    vm = getString(R.string.vmMIVMitfahrer);
                 }
                 if (verkehrsmittel.equals(getString(R.string.vmOPNV))) {
                     mVerkehrsmittel.setImageDrawable(ContextCompat.getDrawable
                             (getApplicationContext(), R.drawable.ic_opnv));
+                    vm = getString(R.string.vmOPNV);
                 }
                 if (verkehrsmittel.equals(getString(R.string.vmSonstiges))) {
                     mVerkehrsmittel.setImageDrawable(ContextCompat.getDrawable
                             (getApplicationContext(), R.drawable.ic_sonstiges));
+                    vm = getString(R.string.vmSonstiges);
                 }
             }
         }
@@ -490,8 +541,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             Polyline polyline = null;
 
             //Populate ArrayLists - constantly
-            mTrackedPath = new ArrayList<Location>();
+            /*mTrackedPath = new ArrayList<Location>();
             mTrackedPath.add(mCurrentLocation);
+            Log.d("TAG", "Array: " + String.valueOf(mTrackedPath));*/
             if(mPolylinePoints.isEmpty()) {
                 mPolylinePoints.add(currentLatLng);
             }
@@ -510,15 +562,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         .color(R.color.blue));
                 Log.d("TAG", "Neuer Punkt an " + mPolylinePoints.get(i) + " hinzugefügt");
             }
-            //mPolylinePoints
-            TextView counter = findViewById(R.id.textView);
-            counter.setText(Integer.toString(mPolylinePoints.size()));
     }
 
     private void  deletePolyline(){
+        //mTrackedPath.clear();
+        //Log.d("TAG", "Array: " + String.valueOf(mTrackedPath));
         mPolylinePoints.clear();
         map.clear();
-        Log.d("TAG", String.valueOf(mPolylinePoints.size()));
+        Log.d("TAG", "Verbleibende Werte in mPolylinePoints: " + String.valueOf(mPolylinePoints.size()));
     }
 
     //------------- Lifecycle --------------------------------------
@@ -602,7 +653,52 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     //---------------- Database stuff ------------------------------------
     public void mAddToDatatabase(){
         Log.d("TAG", "mAddToDatabase() gestartet");
+        String mDistance = calcLengthOfTrack();
+        Log.d("TAG", mDistance);
+        String mDate = new SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(new Date());
+        Log.d("TAG", vm + "; " + mTrackingDuration + "; " + mDistance + "; " + mDate + "; " + mPolylinePoints);
+        mDBHelper.addData(vm, mTrackingDuration, mDistance, mDate, String.valueOf(mPolylinePoints));
+    }
 
+    public String calcLengthOfTrack(){
+        float calcLengthHelper = 0;
+        String mLengthOfTrack;
+
+        LatLng latlng1 = null;
+        LatLng latlng2 = null;
+
+        for(int i = 0; i < mPolylinePoints.size(); i++){
+            latlng2 = mPolylinePoints.get(i);
+            if(latlng1 != null){
+                Location loc1 = new Location("");
+                loc1.setLatitude(latlng1.latitude);
+                loc1.setLongitude(latlng1.longitude);
+
+                Location loc2 = new Location("");
+                loc2.setLatitude(latlng2.latitude);
+                loc2.setLongitude(latlng2.longitude);
+
+                calcLengthHelper = loc1.distanceTo(loc2) + calcLengthHelper;
+                Log.d("TAG", String.valueOf(calcLengthHelper));
+            }
+            latlng1 = latlng2;
+        }
+
+        if(calcLengthHelper < 1000){
+            NumberFormat numberFormat = new DecimalFormat("0.00");
+            numberFormat.setRoundingMode(RoundingMode.HALF_EVEN);
+            mLengthOfTrack = String.valueOf(numberFormat.format(calcLengthHelper)) + " m";
+        }
+        else {
+            float l = calcLengthHelper/1000;
+            NumberFormat numberFormat = new DecimalFormat("0.00");
+            numberFormat.setRoundingMode(RoundingMode.HALF_EVEN);
+            mLengthOfTrack = String.valueOf(numberFormat.format(l)) + " km";
+        }
+        return mLengthOfTrack;
+        /*sollte aus irgendeinem Grund der wahre float Wert von der Distanz nötig werden einfach
+          obiges return auskommentieren und das hier unten verwenden: */
+        //return String.valueOf(calcLengthHelper);
     }
 
     //--------------- Menu-settings -----------------------------------------
