@@ -103,6 +103,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private String mCameraSettings = "Standard";
     private String vm = "Fuß";
+    private String mStartort;
+    private String mEndort;
 
     DBHelper mDBHelper = new DBHelper(this);
 
@@ -177,9 +179,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     startTime = System.currentTimeMillis();
                     timerHandler.postDelayed(timerRunnable, 0);
                     if (mCurrentAddress != null) {
-                        Toast.makeText(MainActivity.this, "Start tracking at: " + mCurrentAddress.getAddressLine(0), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MainActivity.this, "Start tracking at: " +
+                                mCurrentAddress.getAddressLine(0), Toast.LENGTH_SHORT).show();
+                        mStartort = mCurrentAddress.getAddressLine(0);
                     } else {
                         Toast.makeText(MainActivity.this, "Start tracking", Toast.LENGTH_SHORT).show();
+                        int steal = mPolylinePoints.size() - 1;
+                        mStartort = String.valueOf(mPolylinePoints.get(steal));
                     }
                     mTracking.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_stop));
                     mTracking.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(getApplicationContext(), R.color.red)));
@@ -192,9 +198,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     isTracking = false;
                     timerHandler.removeCallbacks(timerRunnable);
                     if (mCurrentAddress != null) {
-                        Toast.makeText(MainActivity.this, "Stop tracking at: " + mCurrentAddress.getAddressLine(0), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MainActivity.this, "Stop tracking at: " +
+                                mCurrentAddress.getAddressLine(0), Toast.LENGTH_SHORT).show();
+                        mEndort = mCurrentAddress.getAddressLine(0);
                     } else {
                         Toast.makeText(MainActivity.this, "Stop tracking", Toast.LENGTH_SHORT).show();
+                        int steal = mPolylinePoints.size() - 1;
+                        mEndort = String.valueOf(mPolylinePoints.get(steal));
                     }
                     mTracking.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_start));
                     mTracking.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(getApplicationContext(), R.color.green)));
@@ -657,7 +667,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         Log.d("TAG", mDistance);
         String mDate = new SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(new Date());
         Log.d("TAG", vm + "; " + mTrackingDuration + "; " + mDistance + "; " + mDate + "; " + mPolylinePoints);
-        mDBHelper.addData(vm, mTrackingDuration, mDistance, mDate, String.valueOf(mPolylinePoints));
+        mDBHelper.addData(vm, mTrackingDuration, mDistance, mDate, String.valueOf(mPolylinePoints), mStartort, mEndort);
     }
 
     public String calcLengthOfTrack(){
