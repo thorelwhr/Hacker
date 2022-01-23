@@ -5,9 +5,13 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
 import android.database.Cursor;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.ImageButton;
 import android.widget.ListView;
 
 import java.util.ArrayList;
@@ -15,9 +19,12 @@ import java.util.List;
 
 public class ImageButtonActivity extends AppCompatActivity
 {
-    ArrayList<String> dataList = new ArrayList<>();
-    ArrayList<String> mOrderedList = new ArrayList<>();
+    private ArrayList<String> dataList = new ArrayList<>();
+    private ArrayList<String> mOrderedList = new ArrayList<>();
+    private ArrayList<String> dataByID = new ArrayList<>();
     DBHelper mDBHelper = new DBHelper(this);
+    private ImageButton mSaveButton;
+    private String mSearchID = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -27,6 +34,7 @@ public class ImageButtonActivity extends AppCompatActivity
         setContentView(R.layout.activity_image_button);
 
         ListView listview = (ListView) findViewById(R.id.listview);
+        mSaveButton = findViewById(R.id.saveButton);
         Toolbar toolbar =findViewById(R.id.toolbar_fuer_ImageButtonActivity);
         setSupportActionBar(toolbar);
         getSupportActionBar().setTitle("Trackdaten");
@@ -40,6 +48,27 @@ public class ImageButtonActivity extends AppCompatActivity
 
         ArrayAdapter arrayAdapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, mOrderedList);
         listview.setAdapter(arrayAdapter);
+
+        listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                //Set background of all items to white
+                for (int i=0;i<parent.getChildCount();i++){
+                    parent.getChildAt(i).setBackgroundColor(Color.WHITE);
+                }
+                view.setBackgroundColor(Color.DKGRAY);
+                final String item = (String) parent.getItemAtPosition(position);
+                mSearchID = item.substring(0,1);
+                getDataByID();
+            }
+        });
+
+        mSaveButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+            }
+        });
     }
 
     protected void getData()
@@ -62,6 +91,22 @@ public class ImageButtonActivity extends AppCompatActivity
             }
             data.close();
         }
+    }
+
+    private  void getDataByID(){
+        Cursor data = mDBHelper.getDataByID(mSearchID);
+        while(data.moveToNext())
+        {
+            dataByID.add(data.getString(0));
+            dataByID.add(data.getString(1));
+            dataByID.add(data.getString(2));
+            dataByID.add(data.getString(3));
+            dataByID.add(data.getString(4));
+            dataByID.add(data.getString(5));
+            dataByID.add(data.getString(6));
+            dataByID.add(data.getString(7));
+        }
+        data.close();
     }
 
     public void mOrderArray(){

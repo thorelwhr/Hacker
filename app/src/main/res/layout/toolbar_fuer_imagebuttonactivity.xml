@@ -9,4 +9,14 @@
     android:theme="@style/ThemeOverlay.AppCompat.ActionBar"
     app:popupTheme="@style/ThemeOverlay.AppCompat.Light">
 
+    <ImageButton
+        android:id="@+id/saveButton"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="end"
+        android:src="@drawable/ic_save"
+        android:background="@android:color/transparent"
+        app:showAsAction="ifRoom"
+        />
+
 </androidx.appcompat.widget.Toolbar>
