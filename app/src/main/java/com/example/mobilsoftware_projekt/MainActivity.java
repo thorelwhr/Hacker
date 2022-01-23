@@ -62,6 +62,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private static final float MAP_STANDARD_ZOOM = 10f;
     private boolean permissionDenied = false;
     private boolean isTracking = false;
+    private boolean mDidCheckPermission;
 
     private GoogleMap map;
     private FloatingActionButton mTracking;
@@ -105,9 +106,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         //retrieve settings
 
-        /*SharedPreferences settings;
+        SharedPreferences settings;
         settings = getSharedPreferences("SAVE_MAP_SETTINGS", Context.MODE_PRIVATE);
-        restoredMapStyle = settings.getString("STYLE_OF_MAP", "MAP_TYPE_NORMAL)");
+        mDidCheckPermission = settings.getBoolean("checkedPermission", false);
+        /*restoredMapStyle = settings.getString("STYLE_OF_MAP", "MAP_TYPE_NORMAL)");
         trafficEnabled = settings.getBoolean("TRAFFIC_SHOWING_ON_MAP", false);
         buildingEnabled = settings.getBoolean("BUILDINGS_SHOWING_ON_MAP", false);
         indoorEnabled =settings.getBoolean("INDOOR_SHOWING_ON_MAP", false);
@@ -247,10 +249,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     @Override
                     public void onSuccess(Location location) {
                         Log.d("TAG", "looking for last location...");
-                        Log.d("TAG", location.toString());
                         //Got last known location apparently can be null in rare instances
                         //Put Values of location into UI
                         if (location != null) {
+                            Log.d("TAG", location.toString());
                             Log.d("TAG", "found last location");
                             updateLocationValues(location);
                         } else {
@@ -388,6 +390,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         // Zugriff bereits gewährt
         if (requestCode != LOCATION_PERMISSION_REQUEST_CODE) {
             Log.d("TAG", "Zugriff bereits gewährt--------------------------");
+            mDidCheckPermission = true;
+            if(mDidCheckPermission){
+                Log.d("TAG", "mDidPermissionCheck = true");
+            }
             return;
         }
 
@@ -396,11 +402,23 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 Manifest.permission.ACCESS_FINE_LOCATION)) {
             permissionDenied = false; //wird hier warum auch immer sonst als true gesetzt --> Absturz bei Erstinstallation
             Log.d("TAG", "Zugriff wird gewährt--------------------------");
+            mDidCheckPermission = true;
+            if(mDidCheckPermission){
+                Log.d("TAG", "mDidPermissionCheck = true");
+            }
             enableMyLocation();
             //mLocationCallback();
         } else {
             Log.d("TAG", "Zugriff nicht gewährt--------------------------");
+            mDidCheckPermission = true;
+            if(mDidCheckPermission){
+                Log.d("TAG", "mDidPermissionCheck = true");
+            }
             permissionDenied = true;
+        }
+        mDidCheckPermission = true;
+        if(mDidCheckPermission){
+            Log.d("TAG", "mDidPermissionCheck = true");
         }
     }
 
@@ -509,12 +527,24 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onStart() {
         super.onStart();
         Log.d("TAG", "onStart() gestartet");
+        if(mDidCheckPermission) {
+            Log.d("TAG", "onStart() if-Schleife läuft");
+            mLocationCallback();
+            enableMyLocation();
+            startLocationUpdates();
+        }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         Log.d("TAG", "onResume() gestartet");
+        if(mDidCheckPermission) {
+            Log.d("TAG", "onResume() if-Schleife läuft");
+            mLocationCallback();
+            enableMyLocation();
+            startLocationUpdates();
+        }
     }
 
     @Override
@@ -529,14 +559,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         Log.d("TAG", "onStop() gestartet");
         super.onStop();
         stopLocationUpdates();
-        /*SharedPreferences settings;
+        SharedPreferences settings;
         settings = getApplicationContext().getSharedPreferences("SAVE_MAP_SETTINGS", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = settings.edit();
-        editor.putString("STYLE_OF_MAP", lastMapStyle);
+        /*editor.putString("STYLE_OF_MAP", lastMapStyle);
         editor.putBoolean("TRAFFIC_SHOWING_ON_MAP", trafficEnabled);
         editor.putBoolean("BUILDINGS_SHOWING_ON_MAP", buildingEnabled);
-        editor.putBoolean("INDOOR_SHOWING_ON_MAP", indoorEnabled);
-        editor.apply();*/
+        editor.putBoolean("INDOOR_SHOWING_ON_MAP", indoorEnabled);*/
+        editor.putBoolean("checkedPermission", mDidCheckPermission);
+        editor.apply();
     }
 
     @Override
@@ -557,14 +588,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         Log.d("TAG", "onDestroy() gestartet");
         stopLocationUpdates();
 
-        /*SharedPreferences settings;
+        SharedPreferences settings;
         settings = getApplicationContext().getSharedPreferences("SAVE_MAP_SETTINGS", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = settings.edit();
-        editor.putString("STYLE_OF_MAP", lastMapStyle);
+        /*editor.putString("STYLE_OF_MAP", lastMapStyle);
         editor.putBoolean("TRAFFIC_SHOWING_ON_MAP", trafficEnabled);
         editor.putBoolean("BUILDINGS_SHOWING_ON_MAP", buildingEnabled);
-        editor.putBoolean("INDOOR_SHOWING_ON_MAP", indoorEnabled);
-        editor.apply();*/
+        editor.putBoolean("INDOOR_SHOWING_ON_MAP", indoorEnabled);*/
+        editor.putBoolean("checkedPermission", mDidCheckPermission);
+        editor.apply();
     }
 
     //---------------- Database stuff ------------------------------------
