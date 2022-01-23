@@ -417,9 +417,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             permissionDenied = true;
         }
         mDidCheckPermission = true;
-        if(mDidCheckPermission){
+        /*if(mDidCheckPermission){
             Log.d("TAG", "mDidPermissionCheck = true");
-        }
+        }*/
     }
 
 
