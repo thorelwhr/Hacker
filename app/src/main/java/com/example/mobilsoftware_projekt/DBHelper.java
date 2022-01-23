@@ -27,9 +27,9 @@ public class DBHelper extends SQLiteOpenHelper
     public static final String COLUMN_NAME_DATUM = "Datum";
     public static final String COLUMN_NAME_STANDORT = "Standorte";
 
-    public static final String CreateDatabase = "CREATE TABLE "+ TABLE_NAME+ "("+  COLUMN_NAME_ID+ "INTEGER PRIMARY KEY AUTOINCREMENT, "+
-            COLUMN_NAME_VERKEHRSMITTEL+ "TEXT NOT NULL, "+ COLUMN_NAME_ZEIT+ "TEXT NOT NULL, "+ COLUMN_NAME_DISTANZ+ "TEXT NOT NULL, "+
-            COLUMN_NAME_DATUM+ "TEXT NOT NULL, "+ COLUMN_NAME_STANDORT+ "TEXT NOT NULL);";
+    public static final String CreateDatabase = "CREATE TABLE "+ TABLE_NAME+ "("+  COLUMN_NAME_ID+ " INTEGER PRIMARY KEY AUTOINCREMENT, "+
+            COLUMN_NAME_VERKEHRSMITTEL+ " TEXT NOT NULL, "+ COLUMN_NAME_ZEIT+ " TEXT NOT NULL, "+ COLUMN_NAME_DISTANZ+ " TEXT NOT NULL, "+
+            COLUMN_NAME_DATUM+ " TEXT NOT NULL, "+ COLUMN_NAME_STANDORT+ " TEXT NOT NULL);";
 
 
 
@@ -48,10 +48,10 @@ public class DBHelper extends SQLiteOpenHelper
 
     }
 
-    public boolean addData(String ID, String Verkehrsmittel, String Zeit, String Distanz, String Datum, String Standort) {
+    public boolean addData(/*String ID, */String Verkehrsmittel, String Zeit, String Distanz, String Datum, String Standort) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
-        contentValues.put(COLUMN_NAME_ID, ID);
+        //contentValues.put(COLUMN_NAME_ID, ID);
         contentValues.put(COLUMN_NAME_VERKEHRSMITTEL, Verkehrsmittel);
         contentValues.put(COLUMN_NAME_ZEIT, Zeit);
         contentValues.put(COLUMN_NAME_DISTANZ, Distanz);
