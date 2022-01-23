@@ -8,10 +8,13 @@
 
     <fragment
         android:id="@+id/map"
+        android:name="com.google.android.gms.maps.SupportMapFragment"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:name = "com.google.android.gms.maps.SupportMapFragment"
-        />
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/neue_toolbar" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_tracking"
@@ -47,8 +50,7 @@
 
     <include
         android:id="@+id/neue_toolbar"
-        layout="@layout/neue_toolbar"
-        />
+        layout="@layout/neue_toolbar" />
 
 
 

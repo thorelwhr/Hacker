@@ -29,6 +29,7 @@ import android.view.View;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import androidx.appcompat.widget.Toolbar;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -49,9 +50,10 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
 
 
-public class MainActivity extends AppCompatActivity implements OnMapReadyCallback,GoogleMap.OnMyLocationButtonClickListener, GoogleMap.OnMyLocationClickListener, ActivityCompat.OnRequestPermissionsResultCallback {
+public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleMap.OnMyLocationButtonClickListener, GoogleMap.OnMyLocationClickListener, ActivityCompat.OnRequestPermissionsResultCallback {
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 99;
     public static final int TEXT_REQUEST = 1; // Für Verkehrsmittelauswahl, Funktion wie bei Permission
@@ -98,6 +100,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(MainActivity.this);
+        Log.d("TAG", "LocationProvider läuft --------");
+
         //retrieve settings
 
         /*SharedPreferences settings;
@@ -112,11 +117,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mapFragment.getMapAsync(this);
 
         mTracking = (FloatingActionButton) findViewById(R.id.fab_tracking);
-        mVerkehrsmittel = (FloatingActionButton)  findViewById(R.id.fab_verkehrsmittel);
+        mVerkehrsmittel = (FloatingActionButton) findViewById(R.id.fab_verkehrsmittel);
         mImageButton = (ImageButton) findViewById(R.id.Imagebutton);
 
         mLocationCallback();
-        Toolbar toolbar =findViewById(R.id.neue_toolbar);
+        Toolbar toolbar = findViewById(R.id.neue_toolbar);
         setSupportActionBar(toolbar);
         getSupportActionBar().setTitle("MyJournal");
 
@@ -129,10 +134,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                 if (!isTracking) {
                     isTracking = true;
-                    if(mCurrentAddress != null) {
+                    if (mCurrentAddress != null) {
                         Toast.makeText(MainActivity.this, "Start tracking at: " + mCurrentAddress.getAddressLine(0), Toast.LENGTH_SHORT).show();
-                    }
-                    else{
+                    } else {
                         Toast.makeText(MainActivity.this, "Start tracking", Toast.LENGTH_SHORT).show();
                     }
                     mTracking.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_stop));
@@ -144,10 +148,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                 } else {
                     isTracking = false;
-                    if(mCurrentAddress != null) {
+                    if (mCurrentAddress != null) {
                         Toast.makeText(MainActivity.this, "Stop tracking at: " + mCurrentAddress.getAddressLine(0), Toast.LENGTH_SHORT).show();
-                    }
-                    else{
+                    } else {
                         Toast.makeText(MainActivity.this, "Stop tracking", Toast.LENGTH_SHORT).show();
                     }
                     mTracking.setImageDrawable(ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_start));
@@ -155,6 +158,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     mVerkehrsmittel.setClickable(true);
                     //Polyline -Funktion beenden
                     deletePolyline();
+                    mAddToDatatabase();
                 }
             }
         });
@@ -179,6 +183,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     //-------------------- Karte ----------------------------------------
     @Override
     public void onMapReady(GoogleMap googleMap) {
+        Log.d("TAG", "onMapReady() gestartet");
         map = googleMap;
 
         // davor gespeicherte Karteneinstellungen werden hier wieder aufgerufen:
@@ -208,6 +213,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }*/
 
         map.setOnMyLocationButtonClickListener(this);
+        Log.d("TAG", "onMyLocationButton sollte angezeigt werden");
+        map.getUiSettings().setMyLocationButtonEnabled(true);
         map.setOnMyLocationClickListener(this);
         map.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
             @Override
@@ -230,8 +237,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     //-------------------Location------------------------------------------
     private void enableMyLocation() {
         Log.d("TAG", "enableLocation() gestartet --------");
-        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(MainActivity.this);
-        Log.d("TAG", "LocationProvider läuft --------");
+
 
         if ((ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)) {
 
@@ -247,8 +253,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         if (location != null) {
                             Log.d("TAG", "found last location");
                             updateLocationValues(location);
-                        }
-                        else {
+                        } else {
                             Log.d("TAG", "could not find location");
                             Toast.makeText(MainActivity.this, "Keine Standortdaten gefunden, bitte " +
                                     "überprüfe deine Einstellungen", Toast.LENGTH_SHORT).show();
@@ -277,7 +282,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         fusedLocationProviderClient.removeLocationUpdates(locationCallback);
     }
 
-    private void mLocationCallback(){
+    private void mLocationCallback() {
         Log.d("TAG", "mLocationUpdate() gestartet");
         //set all properties of LocationRequest
         locationRequest = LocationRequest.create();
@@ -331,7 +336,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             Log.d("TAG", "Toll jetzt ist etwas mit der Kamera schiefgelaufen");
         }
         /*if(!locationCallbackCalled){
-            mLocationCallback();
+            startLocationUpdates();
         }*/
         if(isTracking){
             drawPolyline();
@@ -503,21 +508,25 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onStart() {
         super.onStart();
+        Log.d("TAG", "onStart() gestartet");
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        Log.d("TAG", "onResume() gestartet");
     }
 
     @Override
     protected void onPause() {
         super.onPause();
+        Log.d("TAG", "onResume() gestartet");
         stopLocationUpdates();
     }
 
     @Override
     protected void onStop() {
+        Log.d("TAG", "onStop() gestartet");
         super.onStop();
         stopLocationUpdates();
         /*SharedPreferences settings;
@@ -533,16 +542,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
+        Log.d("TAG", "onSaveInstanceState() gestartet");
     }
 
     @Override
     public void onLowMemory() {
         super.onLowMemory();
+        Log.d("TAG", "onLowMemory() gestartet");
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        Log.d("TAG", "onDestroy() gestartet");
         stopLocationUpdates();
 
         /*SharedPreferences settings;
@@ -553,6 +565,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         editor.putBoolean("BUILDINGS_SHOWING_ON_MAP", buildingEnabled);
         editor.putBoolean("INDOOR_SHOWING_ON_MAP", indoorEnabled);
         editor.apply();*/
+    }
+
+    //---------------- Database stuff ------------------------------------
+    public void mAddToDatatabase(){
+        Log.d("TAG", "mAddToDatabase() gestartet");
+
     }
 
     //--------------- Menu-settings -----------------------------------------
