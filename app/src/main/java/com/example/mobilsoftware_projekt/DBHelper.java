@@ -1,19 +1,12 @@
 package com.example.mobilsoftware_projekt;
 
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.content.ContentValues;
-import android.database.DatabaseErrorHandler;
-import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteOpenHelper;
-import android.os.Bundle;
-import android.util.Log;
-
 
 
 public class DBHelper extends SQLiteOpenHelper
@@ -84,7 +77,15 @@ public class DBHelper extends SQLiteOpenHelper
 
     public Cursor getDataByID(String id){
         SQLiteDatabase db = this.getWritableDatabase();
-        String query = "SELECT * FROM " + TABLE_NAME + " WHERE " + COLUMN_NAME_ID + "=" + id;
+        String query = "SELECT * FROM " + TABLE_NAME + " WHERE " + COLUMN_NAME_ID + "= " + id;
         return db.rawQuery(query, null);
+    }
+
+    public void deleteDataByID(String id){
+        SQLiteDatabase db = this.getWritableDatabase();
+        // Define 'where' part of query.
+        String selection = COLUMN_NAME_ID + "=" + id;
+        // Issue SQL statement.
+        int deletedRows = db.delete(TABLE_NAME, selection, null);
     }
 }

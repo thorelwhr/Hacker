@@ -6,6 +6,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.ItemTouchHelper;
+import androidx.recyclerview.widget.RecyclerView;
 
 import android.Manifest;
 import android.content.Context;
@@ -23,6 +25,7 @@ import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.gson.Gson;
 
 import java.io.File;
@@ -48,6 +51,9 @@ public class ImageButtonActivity extends AppCompatActivity {
     private int mFileNumber = 1;
     private String json = "";
     private boolean mListClicked = false;
+    private String m_1;
+    private boolean mTryingToDelete = false;
+    private FloatingActionButton mDelete;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -59,6 +65,7 @@ public class ImageButtonActivity extends AppCompatActivity {
         ListView listview = (ListView) findViewById(R.id.listview);
         mSaveButton = (ImageButton) findViewById(R.id.saveButton);
         Toolbar toolbar =findViewById(R.id.toolbar_fuer_ImageButtonActivity);
+        mDelete = (FloatingActionButton) findViewById(R.id.fab_delete);
         setSupportActionBar(toolbar);
         getSupportActionBar().setTitle("Trackdaten");
 
@@ -81,15 +88,20 @@ public class ImageButtonActivity extends AppCompatActivity {
         listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                //Set background of all items to white
-                for (int i=0;i<parent.getChildCount();i++){
-                    parent.getChildAt(i).setBackgroundColor(Color.WHITE);
+                if(mTryingToDelete){
+                    //do nothing
                 }
-                view.setBackgroundColor(Color.DKGRAY);
-                final String item = (String) parent.getItemAtPosition(position);
-                mSearchID = item.substring(0,1);
-                getDataByID();
-                mListClicked = true;
+                else {
+                    //Set background of all items to white
+                    for (int i = 0; i < parent.getChildCount(); i++) {
+                        parent.getChildAt(i).setBackgroundColor(Color.WHITE);
+                    }
+                    view.setBackgroundColor(Color.DKGRAY);
+                    final String item = (String) parent.getItemAtPosition(position);
+                    mSearchID = item.substring(0, 1);
+                    getDataByID();
+                    mListClicked = true;
+                }
             }
         });
 
@@ -142,6 +154,57 @@ public class ImageButtonActivity extends AppCompatActivity {
                 else{
                     Toast.makeText(ImageButtonActivity.this, "Bitte wähle eine Datei aus," +
                             " sollten keine Dateien auswählbar seien füge diese via Tracking hinzu.", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+        listview.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+                if (mTryingToDelete) {
+                    for (int i = 0; i < parent.getChildCount(); i++) {
+                        parent.getChildAt(i).setBackgroundColor(Color.WHITE);
+                    }
+                    mTryingToDelete = false;
+                    mDelete.setVisibility(View.INVISIBLE);
+                    mDelete.setClickable(false);
+
+                }
+                else {
+                    //Set background of all items to white
+                    for (int i = 0; i < parent.getChildCount(); i++) {
+                        parent.getChildAt(i).setBackgroundColor(Color.WHITE);
+                    }
+                    view.setBackgroundColor(Color.RED);
+                    final String item = (String) parent.getItemAtPosition(position);
+                    m_1 = item.substring(0, 1);
+                    Log.d("TAG", "ID von zum löschen ausgewehlten Elemt ist: " +m_1);
+                    mTryingToDelete = true;
+                    mDelete.setVisibility(View.VISIBLE);
+                    mDelete.setClickable(true);
+                }
+                return false;
+            }
+        });
+
+        mDelete.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(m_1 != null){
+                    mDBHelper.deleteDataByID(m_1);
+                    Log.d("TAG", "ID: " +m_1 +" wurde eigtl. gelöscht");
+                    mDelete.setVisibility(View.INVISIBLE);
+                    mDelete.setClickable(false);
+                    dataList.clear();
+                    mOrderedList.clear();
+                    arrayAdapter.clear();
+                    getData();
+                    mOrderArray();
+                    listview.setAdapter(arrayAdapter);
+                    mTryingToDelete = false;
+                }
+                else{
+                    Toast.makeText(ImageButtonActivity.this, "Da ist etwas schiefgelaufen! Nicht gelöscht.", Toast.LENGTH_SHORT).show();
                 }
             }
         });
