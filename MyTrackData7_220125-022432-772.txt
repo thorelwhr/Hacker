@@ -1,0 +1,1 @@
+{"date":"25-01-2022","duration":"0:00:11","ende":"Kirschbaum, Riefstahlstraße 2-6, 76133 Karlsruhe, Deutschland","id":"4","length":"5,23 m","start":"Hoffstraße 3, 76133 Karlsruhe, Deutschland","track":"[lat/lng: (49.0123627,8.3858846), lat/lng: (49.0123498,8.3859347), lat/lng: (49.0123423,8.3859483)]","verkehrsmittel":"Fuß"}
